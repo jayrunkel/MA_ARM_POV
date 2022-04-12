@@ -18,7 +18,7 @@ NAMES_TO_CACHE = 1000
 ldTradeDT = random.randint(1, 90)
 
 # AssetClass
-my_AssetClass = ["BILL", "BOND", "CASH", "CMDTY", "FOP", "FSOPT", "FUT", "FXCFD", "OPT", "STK", "WAR", "CLS12", "CLS13", "CLS14", "CLS15", "CLS16", "CLS17", "CLS18", "CLS19", "CLS20"]
+my_AssetClass = ["BILL", "BOND", "CASH", "CMDTY", "FOP", "FSOPT", "FUT", "FXCFD", "OPT", "STK", "WAR"]
 
 #nationalCompetentAuthority
 my_tradeCapacity = ["DEAL", "MTCH", ""]
@@ -48,7 +48,7 @@ class MongoSampleUser(MongoUser):
         lAcctNumA = random.choices(lAcctList, weights=(90, 10), k=1)
         lAcctNum = lAcctNumA[0]
         # executingEntityIdCodeLei
-        lLeiCodeLg = random.randint(1, 50)
+        lLeiCodeLg = random.randint(1, 10)
         lLeiCodeSm = random.randint(1, 5)
         lLeiCode = lLeiCodeLg if lAcctNum < 6 else lLeiCodeSm
         # reportStatus ["REPL", "CANC", "NEWM"] "weights": [1, 1, 8]
@@ -60,7 +60,7 @@ class MongoSampleUser(MongoUser):
         laTxnSelection = random.choices(laTxnStatus, weights=(7, 1, 1, 1), k=1)
         lcTxnStatus = laTxnSelection[0]
         # errors.errorCode
-        ErrsubDoc = {"errors": [
+        ErrsubDoc = [
             {
                 "fieldRejected": "BUYER_FIRST_NAMES",
                 "errorCode": "E1018"
@@ -69,11 +69,11 @@ class MongoSampleUser(MongoUser):
                 "fieldRejected": "BUYER_DATE_OF_BIRTH",
                 "errorCode": "E1020"
             }
-            ]}
-        ErrsubDocEmpty = {"errors": []}
+            ]
+        ErrsubDocEmpty = []
         lcErrors = ErrsubDoc if lcTxnStatus != "RAC" else ErrsubDocEmpty
         # regResp.ruleId
-        RegRespDoc = {"regResp": [
+        RegRespDoc = [
             {
             "ruleId": f'CON-{random.randint(1, 200)}',
             "ruleDesc": "Transaction report desription123..."
@@ -82,8 +82,8 @@ class MongoSampleUser(MongoUser):
             "ruleId": f'CON-{random.randint(201, 500)}',
             "ruleDesc": "Instrument is not a valid XYZ..."
             }
-        ]}
-        RegRespDocDocEmpty = {"regResp": []}
+        ]
+        RegRespDocDocEmpty = []
         lcRegResponse = RegRespDocDocEmpty if lcTxnStatus != "RRJ" else RegRespDoc
 
         document = {
@@ -100,10 +100,10 @@ class MongoSampleUser(MongoUser):
             "subStatus": "",
             'payloadTs': datetime.now() - timedelta(days=ldTradeDT + random.randint(1, 3)),
             "payloadPosition": random.randint(1, 5),
-            "assetClass": my_AssetClass[random.randint(0, 19)],
+            "assetClass": my_AssetClass[random.randint(0, 10)],
             "tradingVenueTransactionIdCode": "TRXREFNR123",
             "mifidInvestmentFirm": self.faker.boolean(),
-            "nationalCompetentAuthority": f'NCADE{random.randint(1, 25)}',
+            "nationalCompetentAuthority": f'NCADE{random.randint(1, 10)}',
             "buyers": {
                         "buyerId": random.randint(1000, 1000000),
                         "buyerCode": f'BrCode{random.randint(1, 50)}',
@@ -138,7 +138,7 @@ class MongoSampleUser(MongoUser):
             "warningDescriptions": "Reported - non-MiFID eligible",
             "traxWarningAdvice": "",
             "submissionSource": "Host",
-            "errros": [lcErrors],
+            "errros": lcErrors,
             "userDefinedFields": [
                 {
                 "userDefined": f'UserFld{lAcctNum}',
@@ -153,9 +153,9 @@ class MongoSampleUser(MongoUser):
             "processingEntity": "Trax NL",
             "reports": {
                 "RegRep": "RefererenceRepID",
-                "RegRep2": "RefererenceRepID",
-                "regResp": [lcRegResponse]
+                "RegRep2": "RefererenceRepID"
             },
+            "regResp": lcRegResponse,
             "events": [
                 {
                 "event_timestamp": 1646217628062,
