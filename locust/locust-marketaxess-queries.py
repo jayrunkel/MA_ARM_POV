@@ -101,7 +101,7 @@ class MetricsLocust(User):
     #    Group by submissionAccountId, executingEntityIdCodeLei, assetClass, 
     #          payloadTs, nationalCompetentAuthority
     ################################################################
-    @task(0)
+    @task(1)
     def reportingVolumeAgg(self):
         # Note that you don't pass in self despite the signature above
         tic = self.get_time();
@@ -201,7 +201,7 @@ class MetricsLocust(User):
     #    Group by submissionAccountId, executingEntityIdCodeLei, assetClass,
     #          payloadTs, nationalCompetentAuthority
     ################################################################
-    @task(0)
+    @task(1)
     def tradeByStatusAgg(self):
         # Note that you don't pass in self despite the signature above
         tic = self.get_time();
@@ -354,11 +354,11 @@ class MetricsLocust(User):
     ################################################################
     # Description: 
     #    Count of Docs for: nonMiFidFlag=”FALSE” AND
-    #    Status != “AREJ”
+    #    Status != “REJ”
     #    group by submissionAccountId, executingEntityIdCodeLei, assetClass, 
     #          payloadTs, nationalCompetentAuthority
     ################################################################
-    @task(0)
+    @task(1)
     def mifidIneligibleAgg(self):
         # Note that you don't pass in self despite the signature above
         tic = self.get_time();
@@ -413,11 +413,8 @@ class MetricsLocust(User):
                         "$gt": payloadTsStart,
                         "$lt": payloadTsEnd
                     },
-                    "status": 'AREJ'
-                }},
-                {"$match": {
                     "nonMiFidFlag": False,
-                    "status": 'AREJ'
+                    "status": {"$not":'REJ'}
                 }},
                 {"$group": {
                     "_id": {
@@ -453,7 +450,7 @@ class MetricsLocust(User):
     #    Group by submissionAccountId, executingEntityIdCodeLei, assetClass, 
     #         payloadTs, nationalCompetentAuthority
     ################################################################
-    @task(0)
+    @task(1)
     def traxRejectionsAgg(self):
         # Note that you don't pass in self despite the signature above
         tic = self.get_time();
@@ -674,7 +671,7 @@ class MetricsLocust(User):
                     "assetClass": '$_id.assetClass',
                     "nationalCompetentAuthority": '$_id.nationalCompetentAuthority',
                     "regRespRuleIdCounts": 1
-                }}                
+                }}
             ]
 
             # Get the record from the target collection now
