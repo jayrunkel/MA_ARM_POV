@@ -53,7 +53,7 @@ NAMES_TO_CACHE = 1000
 ldTradeDT = random.randint(1, 90)
 
 # AssetClass
-my_AssetClass = ["BILL", "BOND", "CASH", "CMDTY", "FOP", "FSOPT", "FUT", "FXCFD", "OPT", "STK", "WAR", "CLS12", "CLS13", "CLS14", "CLS15", "CLS16", "CLS17", "CLS18", "CLS19", "CLS20"]
+my_AssetClass = ["BILL", "BOND", "CASH", "CMDTY", "FOP", "FSOPT", "FUT", "FXCFD", "OPT", "STK", "WAR"]
 
 #nationalCompetentAuthority
 my_tradeCapacity = ["DEAL", "MTCH", ""]
@@ -124,7 +124,7 @@ class MetricsLocust(User):
         lAcctNumA = random.choices(lAcctList, weights=(90, 10), k=1)
         lAcctNum = lAcctNumA[0]
         # executingEntityIdCodeLei
-        lLeiCodeLg = random.randint(1, 50)
+        lLeiCodeLg = random.randint(1, 10)
         lLeiCodeSm = random.randint(1, 5)
         lLeiCode = lLeiCodeLg if lAcctNum < 6 else lLeiCodeSm
         # reportStatus ["REPL", "CANC", "NEWM"] "weights": [1, 1, 8]
@@ -176,7 +176,7 @@ class MetricsLocust(User):
             "subStatus": "",
             'payloadTs': datetime.now() - timedelta(days=ldTradeDT + random.randint(1, 3)),
             "payloadPosition": random.randint(1, 5),
-            "assetClass": my_AssetClass[random.randint(0, 19)],
+            "assetClass": my_AssetClass[random.randint(0, 10)],
             "tradingVenueTransactionIdCode": "TRXREFNR123",
             "mifidInvestmentFirm": fake.boolean(),
             "nationalCompetentAuthority": f'NCADE{random.randint(1, 25)}',
@@ -229,9 +229,9 @@ class MetricsLocust(User):
             "processingEntity": "Trax NL",
             "reports": {
                 "RegRep": "RefererenceRepID",
-                "RegRep2": "RefererenceRepID",
-                "regResp": lcRegResponse
+                "RegRep2": "RefererenceRepID"
             },
+            "regResp": lcRegResponse,
             "events": [
                 {
                 "event_timestamp": 1646217628062,
