@@ -16,6 +16,47 @@
 // 
 // ================================================================
 
+// ================================================================
+// Using preaggs
+// ================================================================
+
+[{$match: {
+ submissionAccountId: 2,
+ executingEntityIdCodeLei: {
+  $in: [
+   'LEY_2_1',
+   'LEY_2_2',
+   'LEY_3_3'
+  ]
+ }
+}}, {$unwind: {
+ path: '$counts'
+}}, {$group: {
+ _id: {
+  submissionAccountId: '$submissionAccountId',
+  executingEntityIdCodeLei: '$executingEntityIdCodeLei',
+  nationalCompetentAuthority: '$counts.nationalCompetentAuthority',
+  assetClass: '$counts.assetClass',
+  payloadTs: '$payloadTs'
+ },
+ count: {
+  $sum: '$counts.count'
+ }
+}}, {$replaceRoot: {
+ newRoot: {
+  $mergeObjects: [
+   '$_id',
+   {
+    count: '$count'
+   }
+  ]
+ }
+}}]
+
+// ================================================================
+// Without preaggs
+// ================================================================
+
 [{$match: {
  submissionAccountId: 2,
  executingEntityIdCodeLei: {

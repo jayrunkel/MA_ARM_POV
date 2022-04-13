@@ -18,6 +18,7 @@
 // To be run against the "agg5-txnVersionsGroupPreAgg" collection
 // ================================================================
 
+
 [{$match: {
  submissionAccountId: 2,
  executingEntityIdCodeLei: {
@@ -35,6 +36,7 @@
   executingEntityIdCodeLei: '$executingEntityIdCodeLei',
   nationalCompetentAuthority: '$counts.nationalCompetentAuthority',
   status: '$counts.status',
+  payloadTs: '$payloadTs',
   assetClass: '$counts.assetClass'
  },
  count: {
@@ -50,8 +52,6 @@
   ]
  }
 }}]
-
-
 
 
 // ================================================================

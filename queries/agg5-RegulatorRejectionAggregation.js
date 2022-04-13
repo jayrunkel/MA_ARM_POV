@@ -38,7 +38,8 @@
   executingEntityIdCodeLei: '$executingEntityIdCodeLei',
   nationalCompetentAuthority: '$counts.nationalCompetentAuthority',
   regRespRuleId: '$counts.regResp.ruleId',
-  assetClass: '$counts.assetClass'
+  assetClass: '$counts.assetClass',
+  payloadTs: '$payloadTs'
  },
  regRespRuleDesc: {
   $first: '$counts.regResp.ruleDesc'
