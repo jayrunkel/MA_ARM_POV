@@ -7,7 +7,32 @@
 // Count of status, subStatus 
 // Group by submissionAccountId, executingEntityIdCodeLei, assetClass,
 //          payloadTs, nationalCompetentAuthority
+//
+// Use collection "agg2-txnVersionsGroupPreAgg"
+//
+// ================================================================
 
+
+// ================================================================
+// Using preaggs
+// ================================================================
+
+[{$match: {
+ submissionAccountId: 2,
+ executingEntityIdCodeLei: {
+  $in: [
+   'LEY_2_1',
+   'LEY_2_2',
+   'LEY_2_3'
+  ]
+ }
+}}, {$project: {
+ _id: 0
+}}]
+
+
+// ================================================================
+// Without preaggs
 // ================================================================
 
 [{$match: {
