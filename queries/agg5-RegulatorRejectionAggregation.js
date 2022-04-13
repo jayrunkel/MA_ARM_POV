@@ -15,6 +15,55 @@
 // 
 // ================================================================
 
+// ================================================================
+// with preags
+//
+// To be run against the "agg5-txnVersionsGroupPreAgg" collection
+// ================================================================
+
+[{$match: {
+ submissionAccountId: 2,
+ executingEntityIdCodeLei: {
+  $in: [
+   'LEY_2_1',
+   'LEY_2_2',
+   'LEY_3_3'
+  ]
+ }
+}}, {$unwind: {
+ path: '$counts'
+}}, {$group: {
+ _id: {
+  submissionAccountId: '$submissionAccountId',
+  executingEntityIdCodeLei: '$executingEntityIdCodeLei',
+  nationalCompetentAuthority: '$counts.nationalCompetentAuthority',
+  regRespRuleId: '$counts.regResp.ruleId',
+  assetClass: '$counts.assetClass'
+ },
+ regRespRuleDesc: {
+  $first: '$counts.regResp.ruleDesc'
+ },
+ count: {
+  $sum: '$counts.count'
+ }
+}}, {$replaceRoot: {
+ newRoot: {
+  $mergeObjects: [
+   '$_id',
+   {
+    count: '$count',
+    regRespRuleDesc: '$regRespRuleDesc'
+   }
+  ]
+ }
+}}]
+
+
+
+// ================================================================
+// Without preaggs
+// ================================================================
+
 [{$match: {
  submissionAccountId: 2,
  executingEntityIdCodeLei: {

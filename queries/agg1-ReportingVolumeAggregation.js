@@ -12,20 +12,64 @@
 //
 // ================================================================
 
+// ================================================================
+// Using preaggs
+//
+// To be run against the "agg5-txnVersionsGroupPreAgg" collection
+// ================================================================
 
-// Without preaggs
 [{$match: {
  submissionAccountId: 2,
  executingEntityIdCodeLei: {
   $in: [
-   'LeiCode6',
-   'LeiCode7',
-   'LeiCode8'
+   'LEY_2_1',
+   'LEY_2_2',
+   'LEY_3_3'
+  ]
+ }
+}}, {$unwind: {
+ path: '$counts'
+}}, {$group: {
+ _id: {
+  submissionAccountId: '$submissionAccountId',
+  executingEntityIdCodeLei: '$executingEntityIdCodeLei',
+  nationalCompetentAuthority: '$counts.nationalCompetentAuthority',
+  status: '$counts.status',
+  assetClass: '$counts.assetClass'
+ },
+ count: {
+  $sum: '$counts.count'
+ }
+}}, {$replaceRoot: {
+ newRoot: {
+  $mergeObjects: [
+   '$_id',
+   {
+    count: '$count'
+   }
+  ]
+ }
+}}]
+
+
+
+
+// ================================================================
+// Without preaggs
+// ================================================================
+
+[{$match: {
+ submissionAccountId: 1,
+ executingEntityIdCodeLei: {
+  $in: [
+		'LEY_1_1',
+		'LEY_1_2',
+		'LEY_1_3'
   ]
  },
  payloadTs: {
   $gt: ISODate('2022-03-01T00:00:00.000Z'),
-  $lt: ISODate('2022-03-31T00:00:00.000Z')
+  $lt: ISODate('2022-03-02T00:00:00.000Z')
  }
 }}, {$group: {
  _id: {
@@ -59,36 +103,29 @@
  statusCounts: 1
 }}]
 
-// Using Preaggs
+
+// First two stages only
 [{$match: {
- submissionAccountId: 2,
+ submissionAccountId: 1,
  executingEntityIdCodeLei: {
   $in: [
-   'LEY_2_1',
-   'LEY_2_2',
-   'LEY_3_3'
+		'LEY_1_1',
+		'LEY_1_2',
+		'LEY_1_3'
   ]
+ },
+ payloadTs: {
+  $gt: ISODate('2022-03-01T00:00:00.000Z'),
+  $lt: ISODate('2022-03-10T00:00:00.000Z')
  }
-}}, {$unwind: {
- path: '$counts'
 }}, {$group: {
  _id: {
-  submissionAccountId: '$submissionAccountId',
   executingEntityIdCodeLei: '$executingEntityIdCodeLei',
-  nationalCompetentAuthority: '$counts.nationalCompetentAuthority',
-  status: '$counts.status',
-  assetClass: '$counts.assetClass'
- },
- count: {
-  $sum: '$counts.count'
- }
-}}, {$replaceRoot: {
- newRoot: {
-  $mergeObjects: [
-   '$_id',
-   {
-    count: '$count'
-   }
-  ]
+  assetClass: '$assetClass',
+  status: '$status',
+  nationalCompetentAuthority: '$nationalCompetentAuthority'
  }
 }}]
+
+
+
