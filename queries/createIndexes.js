@@ -1,5 +1,5 @@
-const dbName = "ARM";
-const colName = "TXN";
+const dbName = "marketaxess";
+const colName = "txnVersions";
 
 const col = db.getSiblingDB(dbName).getCollection(colName);
 
