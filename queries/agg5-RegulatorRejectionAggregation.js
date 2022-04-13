@@ -8,10 +8,7 @@
 //          payloadTs, nationalCompetentAuthority
 // 
 //
-// Run this query against TXN_Latest if you only want the latest version
-//
-// TODO:
-//  - NOT TESTED. Needs to be run against test data
+// To be run against the "agg5-txnVersionsGroupPreAgg" collection
 // 
 // ================================================================
 
@@ -37,9 +34,9 @@
   submissionAccountId: '$submissionAccountId',
   executingEntityIdCodeLei: '$executingEntityIdCodeLei',
   nationalCompetentAuthority: '$counts.nationalCompetentAuthority',
-  regRespRuleId: '$counts.regResp.ruleId',
+  payloadTs: '$payloadTs',
   assetClass: '$counts.assetClass',
-  payloadTs: '$payloadTs'
+  regRespRuleId: '$counts.regResp.ruleId'
  },
  regRespRuleDesc: {
   $first: '$counts.regResp.ruleDesc'
@@ -47,18 +44,31 @@
  count: {
   $sum: '$counts.count'
  }
+}}, {$group: {
+ _id: {
+  submissionAccountId: '$_id.submissionAccountId',
+  executingEntityIdCodeLei: '$_id.executingEntityIdCodeLei',
+  nationalCompetentAuthority: '$_id.nationalCompetentAuthority',
+  payloadTs: '$_id.payloadTs',
+  assetClass: '$_id.assetClass'
+ },
+ counts: {
+  $push: {
+   regRespRuleId: '$_id.regRespRuleId',
+   regRespRuleDesc: '$regRespRuleDesc',
+   count: '$count'
+  }
+ }
 }}, {$replaceRoot: {
  newRoot: {
   $mergeObjects: [
    '$_id',
    {
-    count: '$count',
-    regRespRuleDesc: '$regRespRuleDesc'
+    counts: '$counts'
    }
   ]
  }
 }}]
-
 
 
 // ================================================================

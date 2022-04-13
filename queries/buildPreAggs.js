@@ -3,7 +3,7 @@ const colName = "txnVersions";
 
 
 // if true, the collections are not dropped before
-const dropAllCollectionsAtStart = true;
+const dropAllCollectionsAtStart = false;
 
 const col = db.getSiblingDB(dbName).getCollection(colName);
 
@@ -103,7 +103,7 @@ const agg1PipelineNoMatch = [{$group: {
  },
  counts: 1
 }}, {$merge: {
-	into: 'agg1-txnVersionsGroupPreAgg',
+	into: aggGroupColNames[1],
 }}];
 
 const agg3PipelineNoMatch =
@@ -180,7 +180,76 @@ const agg3PipelineNoMatch =
  counts: 1
 }}, {$addFields: {
  nonMiFidFlag: false
-}}, {$merge: 'agg3-txnVersionsGroupPreAgg'}]
+}}, {$merge: aggGroupColNames[3]}];
+
+
+const agg4PipelineNoMatch =
+[{$unwind: {
+ path: '$errors'
+}}, {$group: {
+ _id: {
+  submissionAccountId: '$submissionAccountId',
+  executingEntityIdCodeLei: '$executingEntityIdCodeLei',
+  assetClass: '$assetClass',
+  nationalCompetentAuthority: '$nationalCompetentAuthority',
+  errorCode: '$errors.errorCode'
+ },
+ payloadTs: {
+  $first: '$payloadTs'
+ },
+ count: {
+  $count: {}
+ }
+}}, {$group: {
+ _id: {
+  submissionAccountId: '$_id.submissionAccountId',
+  executingEntityIdCodeLei: '$_id.executingEntityIdCodeLei',
+  assetClass: '$_id.assetClass',
+  errorCode: '$_id.errorCode'
+ },
+ payloadTs: {
+  $first: '$payloadTs'
+ },
+ nationalCompetentAuthorityCounts: {
+  $push: {
+   nationalCompetentAuthority: '$_id.nationalCompetentAuthority',
+   count: '$count'
+  }
+ },
+ count: {
+  $sum: '$count'
+ }
+}}, {$unwind: {
+ path: '$nationalCompetentAuthorityCounts'
+}}, {$group: {
+ _id: {
+  submissionAccountId: '$_id.submissionAccountId',
+  executingEntityIdCodeLei: '$_id.executingEntityIdCodeLei',
+  errorCode: '$_id.errorCode'
+ },
+ payloadTs: {
+  $first: '$payloadTs'
+ },
+ counts: {
+  $addToSet: {
+   nationalCompetentAuthority: '$nationalCompetentAuthorityCounts.nationalCompetentAuthority',
+   assetClass: '$_id.assetClass',
+   count: {
+    $sum: '$nationalCompetentAuthorityCounts.count'
+   }
+  }
+ }
+}}, {$replaceRoot: {
+ newRoot: {
+  $mergeObjects: [
+   '$_id',
+   {
+    payloadTs: '$payloadTs',
+    counts: '$counts'
+   }
+  ]
+ }
+}}, {$merge: aggGroupColNames[4]}];			
 
 const agg5PipelineNoMatch =
 		[{$unwind: {
@@ -284,7 +353,7 @@ const agg5PipelineNoMatch =
   }
  },
  counts: 1
-}}, {$merge: 'agg5-txnVersionsGroupPreAgg'}];
+}}, {$merge: aggGroupColNames[5]}];
 
 // Drop all the preagg collections
 if (dropAllCollectionsAtStart) {
@@ -325,6 +394,17 @@ for (i=1; i<11; i++) {
 						$ne: 'AREJ'
 					}
 				}}];
+
+	//needed for agg4
+	const dateMatchWithErrors =
+				[{
+		$match: {
+			$expr: {
+				$and: [{$gte: ['$payloadTs', ISODate(startDate)]},
+							 {$lt: ['$payloadTs', ISODate(endDate)]},
+							 {$gt: [{$size: '$errors'}, 0]}]}
+		}}];
+	
 	
 	// needed for agg5
 	const dateMatchWithRegResp = [{
@@ -337,10 +417,18 @@ for (i=1; i<11; i++) {
 
 
 	print("agg1...");
-	col.aggregate(dateMatch.concat(agg1PipelineNoMatch), {allowDiskUse: true});
+	//col.aggregate(dateMatch.concat(agg1PipelineNoMatch), {allowDiskUse: true});
 	print("agg3...")
-	col.aggregate(dateMatchNoMiFid.concat(agg3PipelineNoMatch), {allowDiskUse: true});
+	//col.aggregate(dateMatchNoMiFid.concat(agg3PipelineNoMatch), {allowDiskUse: true});
+	print("agg4...")
+	col.aggregate(dateMatchWithErrors.concat(agg4PipelineNoMatch), {allowDiskUse: true});
 	print("agg5...");
-	col.aggregate(dateMatchWithRegResp.concat(agg5PipelineNoMatch), {allowDiskUse: true});
+	//col.aggregate(dateMatchWithRegResp.concat(agg5PipelineNoMatch), {allowDiskUse: true});
 }
-  
+
+if (dropAllCollectionsAtStart) {
+	for (i=0;i < aggGroupColNames.length; i++) {
+		print("Building Index for: " + aggGroupColNames[i]);
+		db.getCollection(aggGroupColNames[i]).createIndex({submissionAccountId: 1, executingEntityIdCodeLei: 1, payloadTs: 1})
+	}
+}

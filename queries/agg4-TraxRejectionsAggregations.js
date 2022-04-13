@@ -11,6 +11,62 @@
 //
 // ================================================================
 
+// ================================================================
+// using preaggs
+// ================================================================
+
+[{$match: {
+ submissionAccountId: 2,
+ executingEntityIdCodeLei: {
+  $in: [
+   'LEY_2_1',
+   'LEY_2_2',
+   'LEY_3_3'
+  ]
+ }
+}}, {$unwind: {
+ path: '$counts'
+}}, {$group: {
+ _id: {
+  submissionAccountId: '$submissionAccountId',
+  executingEntityIdCodeLei: '$executingEntityIdCodeLei',
+  nationalCompetentAuthority: '$counts.nationalCompetentAuthority',
+  assetClass: '$counts.assetClass',
+  payloadTs: '$payloadTs',
+  errorCode: '$errorCode'
+ },
+ count: {
+  $sum: '$counts.count'
+ }
+}}, {$group: {
+ _id: {
+  submissionAccountId: '$_id.submissionAccountId',
+  executingEntityIdCodeLei: '$_id.executingEntityIdCodeLei',
+  nationalCompetentAuthority: '$_id.nationalCompetentAuthority',
+  assetClass: '$_id.assetClass',
+  payloadTs: '$_id.payloadTs'
+ },
+ counts: {
+  $push: {
+   errorCode: '$_id.errorCode',
+   count: '$count'
+  }
+ }
+}}, {$replaceRoot: {
+ newRoot: {
+  $mergeObjects: [
+   '$_id',
+   {
+    counts: '$counts'
+   }
+  ]
+ }
+}}]
+
+// ================================================================
+// Without preaggs
+// ================================================================
+
 [{$match: {
  submissionAccountId: 2,
  executingEntityIdCodeLei: {

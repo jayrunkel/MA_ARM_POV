@@ -15,9 +15,8 @@
 // ================================================================
 // Using preaggs
 //
-// To be run against the "agg5-txnVersionsGroupPreAgg" collection
+// To be run against the "agg1-txnVersionsGroupPreAgg" collection
 // ================================================================
-
 
 [{$match: {
  submissionAccountId: 2,
@@ -42,16 +41,31 @@
  count: {
   $sum: '$counts.count'
  }
+}}, {$group: {
+ _id: {
+  submissionAccountId: '$_id.submissionAccountId',
+  executingEntityIdCodeLei: '$_id.executingEntityIdCodeLei',
+  nationalCompetentAuthority: '$_id.nationalCompetentAuthority',
+  payloadTs: '$_id.payloadTs',
+  assetClass: '$_id.assetClass'
+ },
+ counts: {
+  $push: {
+   status: '$_id.status',
+   count: '$count'
+  }
+ }
 }}, {$replaceRoot: {
  newRoot: {
   $mergeObjects: [
    '$_id',
    {
-    count: '$count'
+    counts: '$counts'
    }
   ]
  }
 }}]
+
 
 
 // ================================================================

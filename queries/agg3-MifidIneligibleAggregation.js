@@ -9,10 +9,7 @@
 //          payloadTs, nationalCompetentAuthority
 // 
 //
-// Run this query against TXN_Latest if you only want the latest version
-//
-// TODO:
-//  - replace 'FALSE' with false, when data is updated
+// To be run against the "agg3-txnVersionsGroupPreAgg" collection
 // 
 // ================================================================
 
