@@ -52,12 +52,6 @@ fake = Faker()
 # docs to insert per batch insert
 batch_size = None 
 
-# number of cache entries for queries
-NAMES_TO_CACHE = 1000
-
-#Initialize ldTradeDT
-ldTradeDT = random.randint(1, 90)
-
 # AssetClass
 my_AssetClass = ["BILL", "BOND", "CASH", "CMDTY", "FOP", "FSOPT", "FUT", "FXCFD", "OPT", "STK", "WAR"]
 
@@ -149,7 +143,7 @@ class MetricsLocust(User):
         lAcctNumA = random.choices(lAcctList, weights=(90, 10), k=1)
         lAcctNum = lAcctNumA[0]
 
-        txNum = f'TRNXREF_{lAcctNum}_{random.randint(1, 1000000000)}'
+        txNum = f'TRNXREF_{lAcctNum}_{random.randint(1, 9000000000)}'
 
         # payloadPosition sequence
         payloadPosition = 0
@@ -457,7 +451,7 @@ class MetricsLocust(User):
     #    Group by submissionAccountId, executingEntityIdCodeLei, assetClass,
     #          payloadTs, nationalCompetentAuthority
     ################################################################
-    @task(0)
+    @task(20)
     def aggTradeByStatus(self):
         # Note that you don't pass in self despite the signature above
         tic = self.get_time();
@@ -706,7 +700,7 @@ class MetricsLocust(User):
     #    Group by submissionAccountId, executingEntityIdCodeLei, assetClass, 
     #         payloadTs, nationalCompetentAuthority
     ################################################################
-    @task(0)
+    @task(20)
     def aggTraxRejections(self):
         # Note that you don't pass in self despite the signature above
         tic = self.get_time();
@@ -1006,6 +1000,9 @@ class MetricsLocust(User):
 
         try:
             # Reproduce faker fields for our queries
+            #Initialize ldTradeDT
+            ldTradeDT = random.randint(1, 90)
+
             # submissionAccountId
             lAcctNumSM = random.randint(10, 500)
             lAcctNumLarge = random.randint(1, 6)
