@@ -1,5 +1,5 @@
 const dbName = "marketaxess";
-const colName = "txnVersions";
+const colName = "txn1B";
 
 
 // if true, the collections are not dropped before
@@ -8,22 +8,42 @@ const dropAllCollectionsAtStart = true;
 const col = db.getSiblingDB(dbName).getCollection(colName);
 
 const aggGroupColNames = [
-	"agg1-txnVersionsGroupPreAgg",
-	"agg2-txnVersionsGroupPreAgg",
-	"agg3-txnVersionsGroupPreAgg",
-	"agg4-txnVersionsGroupPreAgg",
-	"agg5-txnVersionsGroupPreAgg",
+	"agg1-txn1BGroupPreAgg",
+	"agg2-txn1BGroupPreAgg",
+	"agg3-txn1BGroupPreAgg",
+	"agg4-txn1BGroupPreAgg",
+	"agg5-txn1BGroupPreAgg",
 ];
+
+// ================================================================
+// Notes on Preaggregation queries:
+//
+// 1. Each aggregation query is listed below is prepended during query
+//    execution with a match stage that selects one days worth of
+//    data.
+//
+// 2. The aggregation queries product documents that preaggregate the
+//    data per day. They create documents for each value of
+//    submissionAccountId, executingEntityIdCodeLei, assetClass, and
+//    nationalCompetentAuthority that occurs on that day. For the
+//    count field, each document (each document represents a group) 
+//    contains an array listing all the possible values of that field
+//    and the counts.
+
+//
+// ================================================================
+
 
 // ================ AGG 1 ================
 
-const agg1PipelineNoMatch = [{$group: {
+const agg1PipelineNoMatch =
+[{$group: {
  _id: {
   submissionAccountId: '$submissionAccountId',
   executingEntityIdCodeLei: '$executingEntityIdCodeLei',
   assetClass: '$assetClass',
-  status: '$status',
-  nationalCompetentAuthority: '$nationalCompetentAuthority'
+  nationalCompetentAuthority: '$nationalCompetentAuthority',
+  status: '$status'
  },
  payloadTs: {
   $first: '$payloadTs'
@@ -36,82 +56,43 @@ const agg1PipelineNoMatch = [{$group: {
   submissionAccountId: '$_id.submissionAccountId',
   executingEntityIdCodeLei: '$_id.executingEntityIdCodeLei',
   assetClass: '$_id.assetClass',
-  status: '$_id.status'
+  nationalCompetentAuthority: '$_id.nationalCompetentAuthority'
  },
  payloadTs: {
   $first: '$payloadTs'
  },
- nationalCompetentAuthorityCounts: {
+ statusCounts: {
   $push: {
-   nationalCompetentAuthority: '$_id.nationalCompetentAuthority',
+   status: '$_id.status',
    count: '$count'
   }
  },
- count: {
+ totalCount: {
   $sum: '$count'
  }
-}}, {$unwind: {
- path: '$nationalCompetentAuthorityCounts'
-}}, {$group: {
- _id: {
-  submissionAccountId: '$_id.submissionAccountId',
-  executingEntityIdCodeLei: '$_id.executingEntityIdCodeLei',
-  assetClass: '$_id.assetClass'
- },
- payloadTs: {
-  $first: '$payloadTs'
- },
- pairCount: {
-  $addToSet: {
-   nationalCompetentAuthority: '$nationalCompetentAuthorityCounts.nationalCompetentAuthority',
-   status: '$_id.status',
-   count: {
-    $sum: '$nationalCompetentAuthorityCounts.count'
+}}, {$replaceRoot: {
+ newRoot: {
+  $mergeObjects: [
+   '$_id',
+   {
+    payloadTs: {
+     $dateTrunc: {
+      date: '$payloadTs',
+      unit: 'day'
+     }
+    },
+    statusCounts: '$statusCounts',
+    count: '$totalCount'
    }
-  }
- },
- count: {
-  $count: {}
+  ]
  }
-}}, {$unwind: {
- path: '$pairCount'
-}}, {$group: {
- _id: {
-  submissionAccountId: '$_id.submissionAccountId',
-  executingEntityIdCodeLei: '$_id.executingEntityIdCodeLei'
- },
- counts: {
-  $addToSet: {
-   nationalCompetentAuthority: '$pairCount.nationalCompetentAuthority',
-   status: '$pairCount.status',
-   assetClass: '$_id.assetClass',
-   count: {
-    $sum: '$pairCount.count'
-   }
-  }
- },
- payloadTs: {
-  $first: '$payloadTs'
- }
-}}, {$project: {
- _id: 0,
- submissionAccountId: '$_id.submissionAccountId',
- executingEntityIdCodeLei: '$_id.executingEntityIdCodeLei',
- payloadTs: {
-  $dateTrunc: {
-   date: '$payloadTs',
-   unit: 'day'
-  }
- },
- counts: 1
-}}, {$merge: {
-	into: aggGroupColNames[0],
-}}];
+}}, {$merge: aggGroupColNames[0]}];
+
 
 // ================ AGG 2 ================
 
 const agg2PipelineNoMatch =
-			[{$group: {
+[{$group: {
  _id: {
   submissionAccountId: '$submissionAccountId',
   executingEntityIdCodeLei: '$executingEntityIdCodeLei',
@@ -164,18 +145,28 @@ const agg2PipelineNoMatch =
     $sum: '$totalCount'
    }
   }
+ },
+ totalCount: {
+  $sum: '$totalCount'
  }
 }}, {$replaceRoot: {
  newRoot: {
   $mergeObjects: [
    '$_id',
    {
-    paylaodTs: '$payloadTs',
-    statusCounts: '$statusCounts'
+    payloadTs: {
+     $dateTrunc: {
+      date: '$payloadTs',
+      unit: 'day'
+     }
+    },
+    statusCounts: '$statusCounts',
+    count: '$totalCount'
    }
   ]
  }
 }}, {$merge: aggGroupColNames[1]}];
+			
 			
 // ================ AGG 3 ================
 
@@ -196,69 +187,30 @@ const agg3PipelineNoMatch =
  count: {
   $count: {}
  }
-}}, {$group: {
- _id: {
-  submissionAccountId: '$_id.submissionAccountId',
-  executingEntityIdCodeLei: '$_id.executingEntityIdCodeLei',
-  assetClass: '$_id.assetClass'
- },
- status: {
-  $first: '$status'
- },
- payloadTs: {
-  $first: '$payloadTs'
- },
- nationalCompetentAuthorityCounts: {
-  $push: {
-   nationalCompetentAuthority: '$_id.nationalCompetentAuthority',
-   count: '$count'
-  }
- },
- count: {
-  $sum: '$count'
- }
-}}, {$unwind: {
- path: '$nationalCompetentAuthorityCounts'
-}}, {$group: {
- _id: {
-  submissionAccountId: '$_id.submissionAccountId',
-  executingEntityIdCodeLei: '$_id.executingEntityIdCodeLei'
- },
- status: {
-  $first: '$status'
- },
- counts: {
-  $addToSet: {
-   nationalCompetentAuthority: '$nationalCompetentAuthorityCounts.nationalCompetentAuthority',
-   assetClass: '$_id.assetClass',
-   count: {
-    $sum: '$nationalCompetentAuthorityCounts.count'
+}}, {$replaceRoot: {
+ newRoot: {
+  $mergeObjects: [
+   '$_id',
+   {
+    status: '$status',
+    payloadTs: {
+     $dateTrunc: {
+      date: '$payloadTs',
+      unit: 'day'
+     }
+    },
+    count: '$count',
+    nonMiFidFlag: false
    }
-  }
- },
- payloadTs: {
-  $first: '$payloadTs'
+  ]
  }
-}}, {$project: {
- _id: 0,
- submissionAccountId: '$_id.submissionAccountId',
- executingEntityIdCodeLei: '$_id.executingEntityIdCodeLei',
- payloadTs: {
-  $dateTrunc: {
-   date: '$payloadTs',
-   unit: 'day'
-  }
- },
- status: 1,
- counts: 1
-}}, {$addFields: {
- nonMiFidFlag: false
 }}, {$merge: aggGroupColNames[2]}];
+
 
 // ================ AGG 4 ================
 
 const agg4PipelineNoMatch =
-[{$unwind: {
+			[{$unwind: {
  path: '$errors'
 }}, {$group: {
  _id: {
@@ -279,64 +231,51 @@ const agg4PipelineNoMatch =
   submissionAccountId: '$_id.submissionAccountId',
   executingEntityIdCodeLei: '$_id.executingEntityIdCodeLei',
   assetClass: '$_id.assetClass',
-  errorCode: '$_id.errorCode'
+  nationalCompetentAuthority: '$_id.nationalCompetentAuthority'
  },
  payloadTs: {
   $first: '$payloadTs'
  },
- nationalCompetentAuthorityCounts: {
+ errorCodes: {
   $push: {
-   nationalCompetentAuthority: '$_id.nationalCompetentAuthority',
+   errorCode: '$_id.errorCode',
    count: '$count'
   }
  },
  count: {
   $sum: '$count'
  }
-}}, {$unwind: {
- path: '$nationalCompetentAuthorityCounts'
-}}, {$group: {
- _id: {
-  submissionAccountId: '$_id.submissionAccountId',
-  executingEntityIdCodeLei: '$_id.executingEntityIdCodeLei',
-  errorCode: '$_id.errorCode'
- },
- payloadTs: {
-  $first: '$payloadTs'
- },
- counts: {
-  $addToSet: {
-   nationalCompetentAuthority: '$nationalCompetentAuthorityCounts.nationalCompetentAuthority',
-   assetClass: '$_id.assetClass',
-   count: {
-    $sum: '$nationalCompetentAuthorityCounts.count'
-   }
-  }
- }
 }}, {$replaceRoot: {
  newRoot: {
   $mergeObjects: [
    '$_id',
    {
-    payloadTs: '$payloadTs',
-    counts: '$counts'
+    errorCodes: '$errorCodes',
+    payloadTs: {
+     $dateTrunc: {
+      date: '$payloadTs',
+      unit: 'day'
+     }
+    },
+    count: '$count'
    }
   ]
  }
-}}, {$merge: aggGroupColNames[3]}];			
+}}, {$merge: aggGroupColNames[3]}];
+
 
 // ================ AGG 5 ================
 
 const agg5PipelineNoMatch =
-		[{$unwind: {
+[{$unwind: {
  path: '$regResp'
 }}, {$group: {
  _id: {
   submissionAccountId: '$submissionAccountId',
   executingEntityIdCodeLei: '$executingEntityIdCodeLei',
   assetClass: '$assetClass',
-  regRespRuleId: '$regResp.ruleId',
-  nationalCompetentAuthority: '$nationalCompetentAuthority'
+  nationalCompetentAuthority: '$nationalCompetentAuthority',
+  regRespRuleId: '$regResp.ruleId'
  },
  regRespRuleDesc: {
   $first: '$regResp.ruleDesc'
@@ -352,84 +291,45 @@ const agg5PipelineNoMatch =
   submissionAccountId: '$_id.submissionAccountId',
   executingEntityIdCodeLei: '$_id.executingEntityIdCodeLei',
   assetClass: '$_id.assetClass',
-  regRespRuleId: '$_id.regRespRuleId'
+  nationalCompetentAuthority: '$_id.nationalCompetentAuthority'
  },
  payloadTs: {
   $first: '$payloadTs'
  },
- regRespRuleDesc: {
-  $first: '$regRespRuleDesc'
- },
- nationalCompetentAuthorityCounts: {
+ regRespCounts: {
   $push: {
-   nationalCompetentAuthority: '$_id.nationalCompetentAuthority',
+   regResp: {
+    ruleId: '$_id.regRespRuleId',
+    ruleDesc: '$regRespRuleDesc'
+   },
    count: '$count'
   }
  },
- count: {
+ totalCount: {
   $sum: '$count'
  }
-}}, {$unwind: {
- path: '$nationalCompetentAuthorityCounts'
-}}, {$group: {
- _id: {
-  submissionAccountId: '$_id.submissionAccountId',
-  executingEntityIdCodeLei: '$_id.executingEntityIdCodeLei',
-  assetClass: '$_id.assetClass'
- },
- payloadTs: {
-  $first: '$payloadTs'
- },
- regRespRuleDesc: {
-  $first: '$regRespRuleDesc'
- },
- pairCount: {
-  $addToSet: {
-   nationalCompetentAuthority: '$nationalCompetentAuthorityCounts.nationalCompetentAuthority',
-   regRespRuleId: '$_id.regRespRuleId',
-   count: {
-    $sum: '$nationalCompetentAuthorityCounts.count'
+}}, {$replaceRoot: {
+ newRoot: {
+  $mergeObjects: [
+   '$_id',
+   {
+    payloadTs: {
+     $dateTrunc: {
+      date: '$payloadTs',
+      unit: 'day'
+     }
+    },
+    regRespCounts: '$regRespCounts',
+    count: '$totalCount'
    }
-  }
- },
- count: {
-  $count: {}
+  ]
  }
-}}, {$unwind: {
- path: '$pairCount'
-}}, {$group: {
- _id: {
-  submissionAccountId: '$_id.submissionAccountId',
-  executingEntityIdCodeLei: '$_id.executingEntityIdCodeLei'
- },
- counts: {
-  $addToSet: {
-   nationalCompetentAuthority: '$pairCount.nationalCompetentAuthority',
-   regResp: {
-    ruleId: '$pairCount.regRespRuleId',
-    ruleDesc: '$regRespRuleDesc'
-   },
-   assetClass: '$_id.assetClass',
-   count: {
-    $sum: '$pairCount.count'
-   }
-  }
- },
- payloadTs: {
-  $first: '$payloadTs'
- }
-}}, {$project: {
- _id: 0,
- submissionAccountId: '$_id.submissionAccountId',
- executingEntityIdCodeLei: '$_id.executingEntityIdCodeLei',
- payloadTs: {
-  $dateTrunc: {
-   date: '$payloadTs',
-   unit: 'day'
-  }
- },
- counts: 1
 }}, {$merge: aggGroupColNames[4]}];
+			
+
+function printDuration(start, end) {
+	print("Execution time (s): ", Math.round((end - start) / 1000) );
+}
 
 // Drop all the preagg collections
 if (dropAllCollectionsAtStart) {
@@ -446,7 +346,10 @@ for (i=1; i<11; i++) {
 	const twoDigitDayEnd = i < 9 ? "0"+(i+1) : i+1;
 	const startDate = `2022-03-${twoDigitDayStart}T00:00:00.000Z`;
 	const endDate = `2022-03-${twoDigitDayEnd}T00:00:00.000Z`;
+	let startTime, endTime;
 
+	print(" ");
+	print("================================================================");
 	print("Processing date: ");
 	printjson({startDate: startDate, endDate: endDate});
 
@@ -491,17 +394,37 @@ for (i=1; i<11; i++) {
 							 {$gt: [{$size: '$regResp'}, 0]}]}
 		}}];
 
-
+	
 	print("agg1...");
+	startTime = new Date();
 	col.aggregate(dateMatch.concat(agg1PipelineNoMatch), {allowDiskUse: true});
+	endTime = new Date();
+	printDuration(startTime, endTime);
+
 	print("agg2...");
+	startTime = new Date();
 	col.aggregate(dateMatch.concat(agg2PipelineNoMatch), {allowDiskUse: true});
+	endTime = new Date();
+	printDuration(startTime, endTime);
+
 	print("agg3...")
+	startTime = new Date();
 	col.aggregate(dateMatchNoMiFid.concat(agg3PipelineNoMatch), {allowDiskUse: true});
+	endTime = new Date();
+	printDuration(startTime, endTime);
+	
 	print("agg4...")
+	startTime = new Date();
 	col.aggregate(dateMatchWithErrors.concat(agg4PipelineNoMatch), {allowDiskUse: true});
+	endTime = new Date();
+	printDuration(startTime, endTime);
+	
 	print("agg5...");
+	startTime = new Date();
 	col.aggregate(dateMatchWithRegResp.concat(agg5PipelineNoMatch), {allowDiskUse: true});
+	endTime = new Date();
+	printDuration(startTime, endTime);
+
 }
 
 if (dropAllCollectionsAtStart) {
