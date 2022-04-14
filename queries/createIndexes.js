@@ -2,7 +2,7 @@
 //mongosh "mongodb+srv://arm-poc-m80.vb0mj.mongodb.net/marketaxess" --username user --password pass --file createIndexes.js
 
 const dbName = "marketaxess";
-const colName = "txnVersions";
+const colName = "txn1B";
 
 const col = db.getSiblingDB(dbName).getCollection(colName);
 

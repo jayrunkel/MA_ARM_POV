@@ -23,11 +23,72 @@
   $in: [
    'LEY_2_1',
    'LEY_2_2',
-   'LEY_2_3'
+   'LEY_3_3'
   ]
  }
-}}, {$project: {
- _id: 0
+}}, {$unwind: {
+ path: '$statusCounts'
+}}, {$unwind: {
+ path: '$statusCounts.subStatusCounts'
+}}, {$group: {
+ _id: {
+  submissionAccountId: '$submissionAccountId',
+  executingEntityIdCodeLei: '$executingEntityIdCodeLei',
+  nationalCompetentAuthority: '$nationalCompetentAuthority',
+  payloadTs: '$payloadTs',
+  assetClass: '$assetClass',
+  status: '$statusCounts.status',
+  subStatus: '$statusCounts.subStatusCounts.subStatus'
+ },
+ count: {
+  $sum: '$statusCounts.subStatusCounts.count'
+ }
+}}, {$group: {
+ _id: {
+  submissionAccountId: '$_id.submissionAccountId',
+  executingEntityIdCodeLei: '$_id.executingEntityIdCodeLei',
+  nationalCompetentAuthority: '$_id.nationalCompetentAuthority',
+  payloadTs: '$_id.payloadTs',
+  assetClass: '$_id.assetClass',
+  status: '$_id.status'
+ },
+ counts: {
+  $push: {
+   subStatus: '$_id.subStatus',
+   count: '$count'
+  }
+ },
+ totalCount: {
+  $sum: '$count'
+ }
+}}, {$group: {
+ _id: {
+  submissionAccountId: '$_id.submissionAccountId',
+  executingEntityIdCodeLei: '$_id.executingEntityIdCodeLei',
+  nationalCompetentAuthority: '$_id.nationalCompetentAuthority',
+  payloadTs: '$_id.payloadTs',
+  assetClass: '$_id.assetClass'
+ },
+ statusCounts: {
+  $push: {
+   status: '$_id.status',
+   subStatusCounts: '$counts',
+   count: '$totalCount'
+  }
+ },
+ totalCount: {
+  $sum: '$totalCount'
+ }
+}}, {$replaceRoot: {
+ newRoot: {
+  $mergeObjects: [
+   '$_id',
+   {
+    statusCounts: '$statusCounts',
+    totalCount: '$totalCount'
+   }
+  ]
+ }
 }}]
 
 

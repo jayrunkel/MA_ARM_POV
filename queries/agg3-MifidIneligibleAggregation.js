@@ -26,18 +26,16 @@
    'LEY_3_3'
   ]
  }
-}}, {$unwind: {
- path: '$counts'
 }}, {$group: {
  _id: {
   submissionAccountId: '$submissionAccountId',
   executingEntityIdCodeLei: '$executingEntityIdCodeLei',
-  nationalCompetentAuthority: '$counts.nationalCompetentAuthority',
-  assetClass: '$counts.assetClass',
+  nationalCompetentAuthority: '$nationalCompetentAuthority',
+  assetClass: '$assetClass',
   payloadTs: '$payloadTs'
  },
  count: {
-  $sum: '$counts.count'
+  $sum: '$count'
  }
 }}, {$replaceRoot: {
  newRoot: {

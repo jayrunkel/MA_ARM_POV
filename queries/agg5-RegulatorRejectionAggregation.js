@@ -28,21 +28,21 @@
   ]
  }
 }}, {$unwind: {
- path: '$counts'
+ path: '$regRespCounts'
 }}, {$group: {
  _id: {
   submissionAccountId: '$submissionAccountId',
   executingEntityIdCodeLei: '$executingEntityIdCodeLei',
-  nationalCompetentAuthority: '$counts.nationalCompetentAuthority',
+  nationalCompetentAuthority: '$nationalCompetentAuthority',
   payloadTs: '$payloadTs',
-  assetClass: '$counts.assetClass',
-  regRespRuleId: '$counts.regResp.ruleId'
+  assetClass: '$assetClass',
+  regRespRuleId: '$regRespCounts.regResp.ruleId'
  },
  regRespRuleDesc: {
-  $first: '$counts.regResp.ruleDesc'
+  $first: '$regRespCounts.regResp.ruleDesc'
  },
  count: {
-  $sum: '$counts.count'
+  $sum: '$regRespCounts.count'
  }
 }}, {$group: {
  _id: {
@@ -52,19 +52,23 @@
   payloadTs: '$_id.payloadTs',
   assetClass: '$_id.assetClass'
  },
- counts: {
+ regRespRuleCounts: {
   $push: {
-   regRespRuleId: '$_id.regRespRuleId',
-   regRespRuleDesc: '$regRespRuleDesc',
+   ruleId: '$_id.regRespRuleId',
+   ruleDesc: '$regRespRuleDesc',
    count: '$count'
   }
+ },
+ totalCount: {
+  $sum: '$count'
  }
 }}, {$replaceRoot: {
  newRoot: {
   $mergeObjects: [
    '$_id',
    {
-    counts: '$counts'
+    regRespRuleCounts: '$regRespRuleCounts',
+    totalCount: '$totalCount'
    }
   ]
  }

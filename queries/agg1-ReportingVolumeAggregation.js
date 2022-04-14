@@ -28,18 +28,18 @@
   ]
  }
 }}, {$unwind: {
- path: '$counts'
+ path: '$statusCounts'
 }}, {$group: {
  _id: {
   submissionAccountId: '$submissionAccountId',
   executingEntityIdCodeLei: '$executingEntityIdCodeLei',
-  nationalCompetentAuthority: '$counts.nationalCompetentAuthority',
-  status: '$counts.status',
+  nationalCompetentAuthority: '$nationalCompetentAuthority',
   payloadTs: '$payloadTs',
-  assetClass: '$counts.assetClass'
+  assetClass: '$assetClass',
+  status: '$statusCounts.status'
  },
  count: {
-  $sum: '$counts.count'
+  $sum: '$statusCounts.count'
  }
 }}, {$group: {
  _id: {
@@ -54,13 +54,17 @@
    status: '$_id.status',
    count: '$count'
   }
+ },
+ totalCount: {
+  $sum: '$count'
  }
 }}, {$replaceRoot: {
  newRoot: {
   $mergeObjects: [
    '$_id',
    {
-    counts: '$counts'
+    counts: '$counts',
+    totalCount: '$totalCount'
    }
   ]
  }
