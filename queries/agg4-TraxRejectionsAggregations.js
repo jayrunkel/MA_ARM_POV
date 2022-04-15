@@ -72,60 +72,100 @@
 // ================================================================
 
 [{$match: {
- submissionAccountId: 2,
- executingEntityIdCodeLei: {
-  $in: [
-   'LeiCode6',
-   'LeiCode7',
-   'LeiCode8'
+ $expr: {
+  $and: [
+   {
+    $eq: [
+     '$submissionAccountId',
+     100
+    ]
+   },
+   {
+    $in: [
+     '$executingEntityIdCodeLei',
+     [
+      'LEY_100_1',
+      'LEY_100_2',
+      'LEY_100_3'
+     ]
+    ]
+   },
+   {
+    $gte: [
+     '$payloadTs',
+     ISODate('2022-03-01T00:00:00.000Z')
+    ]
+   },
+   {
+    $lt: [
+     '$payloadTs',
+     ISODate('2022-03-10T00:00:00.000Z')
+    ]
+   },
+   {
+    $gt: [
+     {
+      $size: '$errors'
+     },
+     0
+    ]
+   }
   ]
- },
- payloadTs: {
-  $gt: ISODate('2022-03-01T00:00:00.000Z'),
-  $lt: ISODate('2022-03-31T00:00:00.000Z')
  }
+}}, {$addFields: {
+ payloadTs: {
+  $dateTrunc: {
+   date: '$payloadTs',
+   unit: 'day'
+  }
+ }
+}}, {$unwind: {
+ path: '$errors'
 }}, {$group: {
  _id: {
+  executingEntityIdCodeLei: '$executingEntityIdCodeLei',
   assetClass: '$assetClass',
-  errorCodes: '$errorCodes',
-  nationalCompetentAuthority: '$nationalCompetentAuthority'
+  nationalCompetentAuthority: '$nationalCompetentAuthority',
+  payloadTs: '$payloadTs',
+  errorCode: '$errors.errorCode'
  },
- executingEntityIdCodeLei: {
-  $addToSet: '$executingEntityIdCodeLei'
+ submissionAccountId: {
+  $first: '$submissionAccountId'
  },
  count: {
   $count: {}
  }
 }}, {$group: {
  _id: {
+  executingEntityIdCodeLei: '$_id.executingEntityIdCodeLei',
   assetClass: '$_id.assetClass',
-  nationalCompetentAuthority: '$_id.nationalCompetentAuthority'
+  nationalCompetentAuthority: '$_id.nationalCompetentAuthority',
+  payloadTs: '$_id.payloadTs'
  },
- executingEntityIdCodeLei: {
-  $addToSet: '$executingEntityIdCodeLei'
+ submissionAccountId: {
+  $first: '$submissionAccountId'
  },
- errorCodesCounts: {
+ errorCodeCounts: {
   $push: {
-   errorCodes: '$_id.errorCodes',
+   errorCodes: '$_id.errorCode',
    count: '$count'
   }
- }
-}}, {$project: {
- _id: 0,
- executingEntityIdCodeLei: {
-  $reduce: {
-   input: '$executingEntityIdCodeLei',
-   initialValue: [],
-   'in': {
-    $setUnion: [
-     '$$value',
-     '$$this'
-    ]
-   }
-  }
  },
- assetClass: '$_id.assetClass',
- nationalCompetentAuthority: '$_id.nationalCompetentAuthority',
- errorCodesCounts: 1
+ totalCount: {
+  $sum: '$count'
+ }
+}}, {$replaceRoot: {
+ newRoot: {
+  $mergeObjects: [
+   '$_id',
+   {
+    submissionAccountId: '$submissionAccountId',
+    errorCodeCounts: '$errorCodesCounts',
+    totalCount: '$totalCount'
+   }
+  ]
+ }
 }}]
+
+
 

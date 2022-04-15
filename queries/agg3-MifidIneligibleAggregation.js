@@ -62,37 +62,53 @@
  submissionAccountId: 2,
  executingEntityIdCodeLei: {
   $in: [
-   'LeiCode6',
-   'LeiCode7',
-   'LeiCode8'
+   'LEY_2_1',
+   'LEY_2_2',
+   'LEY_2_3'
   ]
  },
  payloadTs: {
   $gt: ISODate('2022-03-01T00:00:00.000Z'),
-  $lt: ISODate('2022-03-31T00:00:00.000Z')
+  $lt: ISODate('2022-03-10T00:00:00.000Z')
  },
- status: 'AREJ'
-}}, {$match: {
  nonMiFidFlag: false,
- status: 'AREJ'
+ status: {
+  $ne: 'AREJ'
+ }
+}}, {$addFields: {
+ payloadTs: {
+  $dateTrunc: {
+   date: '$payloadTs',
+   unit: 'day'
+  }
+ }
 }}, {$group: {
  _id: {
   assetClass: '$assetClass',
-  nationalCompetentAuthority: '$nationalCompetentAuthority'
+  nationalCompetentAuthority: '$nationalCompetentAuthority',
+  executingEntityIdCodeLei: '$executingEntityIdCodeLei',
+  payloadTs: '$payloadTs'
  },
- executingEntityIdCodeLei: {
-  $addToSet: '$executingEntityIdCodeLei'
+ submissionAccountId: {
+  $first: '$submissionAccountId'
  },
  count: {
   $count: {}
  }
-}}, {$project: {
- _id: 0,
- executingEntityIdCodeLei: 1,
- assetClass: '$_id.assetClass',
- nationalCompetentAuthority: '$_id.nationalCompetentAuthority',
- count: 1
+}}, {$replaceRoot: {
+ newRoot: {
+  $mergeObjects: [
+   '$_id',
+   {
+    submissionAccountId: '$submissionAccountId',
+    count: '$count'
+   }
+  ]
+ }
 }}]
+
+
+
 
 
 

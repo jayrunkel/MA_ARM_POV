@@ -89,12 +89,20 @@
   $gt: ISODate('2022-03-01T00:00:00.000Z'),
   $lt: ISODate('2022-03-02T00:00:00.000Z')
  }
+}}, {$addFields: {
+ payloadTs: {
+  $dateTrunc: {
+   date: '$payloadTs',
+   unit: 'day'
+  }
+ }
 }}, {$group: {
  _id: {
   executingEntityIdCodeLei: '$executingEntityIdCodeLei',
   assetClass: '$assetClass',
   status: '$status',
-  nationalCompetentAuthority: '$nationalCompetentAuthority'
+  nationalCompetentAuthority: '$nationalCompetentAuthority',
+  payloadTs: '$payloadTs'
  },
  submissionAccountId: {
   $first: '$submissionAccountId'
@@ -106,7 +114,8 @@
  _id: {
   assetClass: '$_id.assetClass',
   nationalCompetentAuthority: '$_id.nationalCompetentAuthority',
-  executingEntityIdCodeLei: '$_id.executingEntityIdCodeLei'
+  executingEntityIdCodeLei: '$_id.executingEntityIdCodeLei',
+  payloadTs: '$_id.payloadTs'
  },
  submissionAccountId: {
   $first: '$submissionAccountId'

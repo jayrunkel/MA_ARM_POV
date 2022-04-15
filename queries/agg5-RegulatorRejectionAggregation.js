@@ -83,60 +83,68 @@
  submissionAccountId: 2,
  executingEntityIdCodeLei: {
   $in: [
-   'LeiCode6',
-   'LeiCode7',
-   'LeiCode8'
+   'LEY_2_1',
+   'LEY_2_2',
+   'LEY_2_3'
   ]
  },
  payloadTs: {
   $gt: ISODate('2022-03-01T00:00:00.000Z'),
-  $lt: ISODate('2022-03-31T00:00:00.000Z')
+  $lt: ISODate('2022-03-10T00:00:00.000Z')
+ }
+}}, {$addFields: {
+ payloadTs: {
+  $dateTrunc: {
+   date: '$payloadTs',
+   unit: 'day'
+  }
  }
 }}, {$unwind: {
  path: '$regResp'
 }}, {$group: {
  _id: {
+  executingEntityIdCodeLei: '$executingEntityIdCodeLei',
   assetClass: '$assetClass',
-  regRespRuleId: '$regResp.ruleId',
-  nationalCompetentAuthority: '$nationalCompetentAuthority'
+  nationalCompetentAuthority: '$nationalCompetentAuthority',
+  payloadTs: '$payloadTs',
+  regRespRuleId: '$regResp.ruleId'
  },
- executingEntityIdCodeLei: {
-  $addToSet: '$executingEntityIdCodeLei'
+ submissionAccountId: {
+  $first: '$submissionAccountId'
  },
  count: {
   $count: {}
  }
 }}, {$group: {
  _id: {
+  executingEntityIdCodeLei: '$_id.executingEntityIdCodeLei',
   assetClass: '$_id.assetClass',
-  nationalCompetentAuthority: '$_id.nationalCompetentAuthority'
+  nationalCompetentAuthority: '$_id.nationalCompetentAuthority',
+  payloadTs: '$_id.payloadTs'
  },
- executingEntityIdCodeLei: {
-  $addToSet: '$executingEntityIdCodeLei'
+ submissionAccountId: {
+  $first: '$submissionAccountId'
  },
  regRespRuleIdCounts: {
   $push: {
    ruleId: '$_id.regRespRuleId',
    count: '$count'
   }
- }
-}}, {$project: {
- _id: 0,
- executingEntityIdCodeLei: {
-  $reduce: {
-   input: '$executingEntityIdCodeLei',
-   initialValue: [],
-   'in': {
-    $setUnion: [
-     '$$value',
-     '$$this'
-    ]
-   }
-  }
  },
- assetClass: '$_id.assetClass',
- nationalCompetentAuthority: '$_id.nationalCompetentAuthority',
- regRespRuleIdCounts: 1
+ totalCount: {
+  $sum: '$count'
+ }
+}}, {$replaceRoot: {
+ newRoot: {
+  $mergeObjects: [
+   '$_id',
+   {
+    submissionAccountId: '$submissionAccountId',
+    regRespRuleIdCounts: '$regRespRuleIdCounts',
+    totalCount: '$totalCount'
+   }
+  ]
+ }
 }}]
 
 
