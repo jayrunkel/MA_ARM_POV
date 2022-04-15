@@ -335,7 +335,8 @@ class MetricsLocust(User):
             time.sleep(5)
 
 
-    @task(1400)
+    # TODO @task(1400) when run normal (0) to bypass inserts
+    @task(0)
     def insert6TxVersions(self):
         # Note that you don't pass in self despite the signature above
         tic = self.get_time();
@@ -409,47 +410,47 @@ class MetricsLocust(User):
                     },
                     "payloadTs": datetime.fromisoformat(payloadTs)
                 }},
-                {$unwind: {
-                    path: '$statusCounts'
+                {"$unwind": {
+                    "path": '$statusCounts'
                 }},
-                {$group: {
-                    _id: {
-                        submissionAccountId: '$submissionAccountId',
-                        executingEntityIdCodeLei: '$executingEntityIdCodeLei',
-                        nationalCompetentAuthority: '$nationalCompetentAuthority',
-                        payloadTs: '$payloadTs',
-                        assetClass: '$assetClass',
-                        status: '$statusCounts.status'
+                {"$group": {
+                    "_id": {
+                        "submissionAccountId": '$submissionAccountId',
+                        "executingEntityIdCodeLei": '$executingEntityIdCodeLei',
+                        "nationalCompetentAuthority": '$nationalCompetentAuthority',
+                        "payloadTs": '$payloadTs',
+                        "assetClass": '$assetClass',
+                        "status": '$statusCounts.status'
                     },
-                    count: {
-                        $sum: '$statusCounts.count'
+                    "count": {
+                        "$sum": '$statusCounts.count'
                     }
                 }},
-                {$group: {
-                    _id: {
-                        submissionAccountId: '$_id.submissionAccountId',
-                        executingEntityIdCodeLei: '$_id.executingEntityIdCodeLei',
-                        nationalCompetentAuthority: '$_id.nationalCompetentAuthority',
-                        payloadTs: '$_id.payloadTs',
-                        assetClass: '$_id.assetClass'
+                {"$group": {
+                    "_id": {
+                        "submissionAccountId": '$_id.submissionAccountId',
+                        "executingEntityIdCodeLei": '$_id.executingEntityIdCodeLei',
+                        "nationalCompetentAuthority": '$_id.nationalCompetentAuthority',
+                        "payloadTs": '$_id.payloadTs',
+                        "assetClass": '$_id.assetClass'
                     },
-                    counts: {
-                        $push: {
-                            status: '$_id.status',
-                            count: '$count'
+                    "counts": {
+                        "$push": {
+                            "status": '$_id.status',
+                            "count": '$count'
                         }
                     },
-                    totalCount: {
-                        $sum: '$count'
+                    "totalCount": {
+                        "$sum": '$count'
                     }
                 }},
-                {$replaceRoot: {
-                    newRoot: {
-                        $mergeObjects: [
+                {"$replaceRoot": {
+                    "newRoot": {
+                        "$mergeObjects": [
                             '$_id',
                             {
-                                counts: '$counts',
-                                totalCount: '$totalCount'
+                                "counts": '$counts',
+                                "totalCount": '$totalCount'
                             }
                         ]
                     }
@@ -519,76 +520,73 @@ class MetricsLocust(User):
                             f'LEY_{lAcctNum}_{lLeiCode2}'
                         ]
                     },
-                    "payloadTs": {
-                        "$gt": payloadTsStart,
-                        "$lt": payloadTsEnd
+                    "payloadTs": datetime.fromisoformat(payloadTs),
+                }},
+                {"$unwind": {
+                    "path": '$statusCounts'
+                }},
+                {"$unwind": {
+                    "path": '$statusCounts.subStatusCounts'
+                }},
+                {"$group": {
+                    "_id": {
+                        "submissionAccountId": '$submissionAccountId',
+                        "executingEntityIdCodeLei": '$executingEntityIdCodeLei',
+                        "nationalCompetentAuthority": '$nationalCompetentAuthority',
+                        "payloadTs": '$payloadTs',
+                        "assetClass": '$assetClass',
+                        "status": '$statusCounts.status',
+                        "subStatus": '$statusCounts.subStatusCounts.subStatus'
                     },
-                }},
-                {$unwind: {
-                    path: '$statusCounts'
-                }},
-                {$unwind: {
-                    path: '$statusCounts.subStatusCounts'
-                }},
-                {$group: {
-                    _id: {
-                        submissionAccountId: '$submissionAccountId',
-                        executingEntityIdCodeLei: '$executingEntityIdCodeLei',
-                        nationalCompetentAuthority: '$nationalCompetentAuthority',
-                        payloadTs: '$payloadTs',
-                        assetClass: '$assetClass',
-                        status: '$statusCounts.status',
-                        subStatus: '$statusCounts.subStatusCounts.subStatus'
-                    },
-                    count: {
-                        $sum: '$statusCounts.subStatusCounts.count'
+                    "count": {
+                        "$sum": '$statusCounts.subStatusCounts.count'
                     }
                 }},
-                {$group: {
-                    _id: {
-                        submissionAccountId: '$_id.submissionAccountId',
-                        executingEntityIdCodeLei: '$_id.executingEntityIdCodeLei',
-                        nationalCompetentAuthority: '$_id.nationalCompetentAuthority',
-                        payloadTs: '$_id.payloadTs',
-                        assetClass: '$_id.assetClass',
-                        status: '$_id.status'
+                {"$group": {
+                    "_id": {
+                        "submissionAccountId": '$_id.submissionAccountId',
+                        "executingEntityIdCodeLei": '$_id.executingEntityIdCodeLei',
+                        "nationalCompetentAuthority": '$_id.nationalCompetentAuthority',
+                        "payloadTs": '$_id.payloadTs',
+                        "assetClass": '$_id.assetClass',
+                        "status": '$_id.status'
                     },
-                    counts: {
-                        $push: {
-                            subStatus: '$_id.subStatus',
-                            count: '$count'
+                    "counts": {
+                        "$push": {
+                            "subStatus": '$_id.subStatus',
+                            "count": '$count'
                         }
                     },
-                    totalCount: {
-                        $sum: '$count'
+                    "totalCount": {
+                        "$sum": '$count'
                     }
                 }},
-                {$group: {
-                    _id: {
-                        submissionAccountId: '$_id.submissionAccountId',
-                        executingEntityIdCodeLei: '$_id.executingEntityIdCodeLei',
-                        nationalCompetentAuthority: '$_id.nationalCompetentAuthority',
-                        payloadTs: '$_id.payloadTs',
-                        assetClass: '$_id.assetClass'
+                {"$group": {
+                    "_id": {
+                        "submissionAccountId": '$_id.submissionAccountId',
+                        "executingEntityIdCodeLei": '$_id.executingEntityIdCodeLei',
+                        "nationalCompetentAuthority": '$_id.nationalCompetentAuthority',
+                        "payloadTs": '$_id.payloadTs',
+                        "assetClass": '$_id.assetClass'
                     },
-                    statusCounts: {
-                        $push: {
-                            status: '$_id.status',
-                            subStatusCounts: '$counts',
-                            count: '$totalCount'
+                    "statusCounts": {
+                        "$push": {
+                            "status": '$_id.status',
+                            "subStatusCounts": '$counts',
+                            "count": '$totalCount'
                         }
                     },
-                    totalCount: {
-                        $sum: '$totalCount'
+                    "totalCount": {
+                        "$sum": '$totalCount'
                     }
                 }},
-                {$replaceRoot: {
-                    newRoot: {
-                        $mergeObjects: [
+                {"$replaceRoot": {
+                    "newRoot": {
+                        "$mergeObjects": [
                             '$_id',
                             {
-                                statusCounts: '$statusCounts',
-                                totalCount: '$totalCount'
+                                "statusCounts": '$statusCounts',
+                                "totalCount": '$totalCount'
                             }
                         ]
                     }
@@ -660,29 +658,29 @@ class MetricsLocust(User):
                     },
                     "payloadTs": datetime.fromisoformat(payloadTs)
                 }},
-                {$group: {
-                    _id: {
-                        submissionAccountId: '$submissionAccountId',
-                        executingEntityIdCodeLei: '$executingEntityIdCodeLei',
-                        nationalCompetentAuthority: '$nationalCompetentAuthority',
-                        assetClass: '$assetClass',
-                        payloadTs: '$payloadTs'
+                {"$group": {
+                    "_id": {
+                        "submissionAccountId": '$submissionAccountId',
+                        "executingEntityIdCodeLei": '$executingEntityIdCodeLei',
+                        "nationalCompetentAuthority": '$nationalCompetentAuthority',
+                        "assetClass": '$assetClass',
+                        "payloadTs": '$payloadTs'
                     },
-                    status: {
-                        $first: '$status'
+                    "status": {
+                        "$first": '$status'
                     },
-                    count: {
-                        $sum: '$count'
+                    "count": {
+                        "$sum": '$count'
                     }
                 }},
-                {$replaceRoot: {
-                    newRoot: {
-                        $mergeObjects: [
+                {"$replaceRoot": {
+                    "newRoot": {
+                        "$mergeObjects": [
                             '$_id',
                             {
-                                count: '$count',
-                                nonMiFidFlag: false,
-                                status: '$status'
+                                "count": '$count',
+                                "nonMiFidFlag": False,
+                                "status": '$status'
                             }
                         ]
                     }
@@ -752,52 +750,49 @@ class MetricsLocust(User):
                             f'LEY_{lAcctNum}_{lLeiCode2}'
                         ]
                     },
-                    "payloadTs": {
-                        "$gt": payloadTsStart,
-                        "$lt": payloadTsEnd
+                    "payloadTs": datetime.fromisoformat(payloadTs)
+                }},
+                {"$unwind": {
+                    "path": '$errorCodes'
+                }},
+                {"$group": {
+                    "_id": {
+                        "submissionAccountId": '$submissionAccountId',
+                        "executingEntityIdCodeLei": '$executingEntityIdCodeLei',
+                        "nationalCompetentAuthority": '$nationalCompetentAuthority',
+                        "assetClass": '$assetClass',
+                        "payloadTs": '$payloadTs',
+                        "errorCode": '$errorCodes.errorCode'
+                    },
+                    "count": {
+                        "$sum": '$errorCodes.count'
                     }
                 }},
-                {$unwind: {
-                    path: '$errorCodes'
-                }},
-                {$group: {
-                    _id: {
-                        submissionAccountId: '$submissionAccountId',
-                        executingEntityIdCodeLei: '$executingEntityIdCodeLei',
-                        nationalCompetentAuthority: '$nationalCompetentAuthority',
-                        assetClass: '$assetClass',
-                        payloadTs: '$payloadTs',
-                        errorCode: '$errorCodes.errorCode'
+                {"$group": {
+                    "_id": {
+                        "submissionAccountId": '$_id.submissionAccountId',
+                        "executingEntityIdCodeLei": '$_id.executingEntityIdCodeLei',
+                        "nationalCompetentAuthority": '$_id.nationalCompetentAuthority',
+                        "assetClass": '$_id.assetClass',
+                        "payloadTs": '$_id.payloadTs'
                     },
-                    count: {
-                        $sum: '$errorCodes.count'
-                    }
-                }},
-                {$group: {
-                    _id: {
-                        submissionAccountId: '$_id.submissionAccountId',
-                        executingEntityIdCodeLei: '$_id.executingEntityIdCodeLei',
-                        nationalCompetentAuthority: '$_id.nationalCompetentAuthority',
-                        assetClass: '$_id.assetClass',
-                        payloadTs: '$_id.payloadTs'
-                    },
-                    errorCodeCounts: {
-                        $push: {
-                            errorCode: '$_id.errorCode',
-                            count: '$count'
+                    "errorCodeCounts": {
+                        "$push": {
+                            "errorCode": '$_id.errorCode',
+                            "count": '$count'
                         }
                     },
-                    totalCount: {
-                        $sum: '$count'
+                    "totalCount": {
+                        "$sum": '$count'
                     }
                 }},
-                {$replaceRoot: {
-                    newRoot: {
-                        $mergeObjects: [
+                {"$replaceRoot": {
+                    "newRoot": {
+                        "$mergeObjects": [
                             '$_id',
                             {
-                                errorCodeCounts: '$errorCodeCounts',
-                                totalCount: '$totalCount'
+                                "errorCodeCounts": '$errorCodeCounts',
+                                "totalCount": '$totalCount'
                             }
                         ]
                     }
@@ -869,51 +864,51 @@ class MetricsLocust(User):
                     },
                     "payloadTs": datetime.fromisoformat(payloadTs)
                 }},
-                {$unwind: {
-                    path: '$regRespCounts'
+                {"$unwind": {
+                    "path": '$regRespCounts'
                 }},
-                {$group: {
-                    _id: {
-                        submissionAccountId: '$submissionAccountId',
-                        executingEntityIdCodeLei: '$executingEntityIdCodeLei',
-                        nationalCompetentAuthority: '$nationalCompetentAuthority',
-                        payloadTs: '$payloadTs',
-                        assetClass: '$assetClass',
-                        regRespRuleId: '$regRespCounts.regResp.ruleId'
+                {"$group": {
+                    "_id": {
+                        "submissionAccountId": '$submissionAccountId',
+                        "executingEntityIdCodeLei": '$executingEntityIdCodeLei',
+                        "nationalCompetentAuthority": '$nationalCompetentAuthority',
+                        "payloadTs": '$payloadTs',
+                        "assetClass": '$assetClass',
+                        "regRespRuleId": '$regRespCounts.regResp.ruleId'
                     },
-                    regRespRuleDesc: {
-                        $first: '$regRespCounts.regResp.ruleDesc'
+                    "regRespRuleDesc": {
+                        "$first": '$regRespCounts.regResp.ruleDesc'
                     },
-                    count: {
-                        $sum: '$regRespCounts.count'
+                    "count": {
+                        "$sum": '$regRespCounts.count'
                     }
                 }},
-                {$group: {
-                    _id: {
-                        submissionAccountId: '$_id.submissionAccountId',
-                        executingEntityIdCodeLei: '$_id.executingEntityIdCodeLei',
-                        nationalCompetentAuthority: '$_id.nationalCompetentAuthority',
-                        payloadTs: '$_id.payloadTs',
-                        assetClass: '$_id.assetClass'
+                {"$group": {
+                    "_id": {
+                        "submissionAccountId": '$_id.submissionAccountId',
+                        "executingEntityIdCodeLei": '$_id.executingEntityIdCodeLei',
+                        "nationalCompetentAuthority": '$_id.nationalCompetentAuthority',
+                        "payloadTs": '$_id.payloadTs',
+                        "assetClass": '$_id.assetClass'
                     },
-                    regRespRuleCounts: {
-                        $push: {
-                            ruleId: '$_id.regRespRuleId',
-                            ruleDesc: '$regRespRuleDesc',
-                            count: '$count'
+                    "regRespRuleCounts": {
+                        "$push": {
+                            "ruleId": '$_id.regRespRuleId',
+                            "ruleDesc": '$regRespRuleDesc',
+                            "count": '$count'
                         }
                     },
-                    totalCount: {
-                        $sum: '$count'
+                    "totalCount": {
+                        "$sum": '$count'
                     }
                 }},
-                {$replaceRoot: {
-                    newRoot: {
-                        $mergeObjects: [
+                {"$replaceRoot": {
+                    "newRoot": {
+                        "$mergeObjects": [
                             '$_id',
                             {
-                                regRespRuleCounts: '$regRespRuleCounts',
-                                totalCount: '$totalCount'
+                                "regRespRuleCounts": '$regRespRuleCounts',
+                                "totalCount": '$totalCount'
                             }
                         ]
                     }
