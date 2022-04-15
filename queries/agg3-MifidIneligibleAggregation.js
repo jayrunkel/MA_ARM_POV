@@ -34,6 +34,9 @@
   assetClass: '$assetClass',
   payloadTs: '$payloadTs'
  },
+ status: {
+  $first: '$status'
+ },
  count: {
   $sum: '$count'
  }
@@ -42,11 +45,14 @@
   $mergeObjects: [
    '$_id',
    {
-    count: '$count'
+    count: '$count',
+    nonMiFidFlag: false,
+    status: '$status'
    }
   ]
  }
 }}]
+
 
 // ================================================================
 // Without preaggs

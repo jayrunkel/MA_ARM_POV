@@ -87,11 +87,11 @@ class MetricsLocust(User):
             db = client[vars[1]]
             coll = db[vars[2]]
             # Going to hardcode the collection now since we are dealing with many colls now
-            aggColl1 = db["agg1-txnVersionsGroupPreAgg"]
-            aggColl2 = db["agg2-txnVersionsGroupPreAgg"]
-            aggColl3 = db["agg3-txnVersionsGroupPreAgg"]
-            aggColl4 = db["agg4-txnVersionsGroupPreAgg"]
-            aggColl5 = db["agg5-txnVersionsGroupPreAgg"]
+            aggColl1 = db["agg1-txn1BGroupPreAgg"]
+            aggColl2 = db["agg2-txn1BGroupPreAgg"]
+            aggColl3 = db["agg3-txn1BGroupPreAgg"]
+            aggColl4 = db["agg4-txn1BGroupPreAgg"]
+            aggColl5 = db["agg5-txn1BGroupPreAgg"]
 
             # Log all application exceptions (and audits) to the same cluster
             audit = client.mlocust.audit
@@ -409,32 +409,52 @@ class MetricsLocust(User):
                     },
                     "payloadTs": datetime.fromisoformat(payloadTs)
                 }},
-                {"$unwind": {
-                    "path": '$counts'
+                {$unwind: {
+                    path: '$statusCounts'
                 }},
-                {"$group": {
-                    "_id": {
-                        "submissionAccountId": '$submissionAccountId',
-                        "executingEntityIdCodeLei": '$executingEntityIdCodeLei',
-                        "nationalCompetentAuthority": '$nationalCompetentAuthority',
-                        "status": '$status',
-                        "payloadTs": '$payloadTs',
-                        "assetClass": '$assetClass'
+                {$group: {
+                    _id: {
+                        submissionAccountId: '$submissionAccountId',
+                        executingEntityIdCodeLei: '$executingEntityIdCodeLei',
+                        nationalCompetentAuthority: '$nationalCompetentAuthority',
+                        payloadTs: '$payloadTs',
+                        assetClass: '$assetClass',
+                        status: '$statusCounts.status'
                     },
-                    "count": {
-                        "$sum": '$counts.count'
+                    count: {
+                        $sum: '$statusCounts.count'
                     }
                 }},
-                {"$replaceRoot": {
-                    "newRoot": {
-                        "$mergeObjects": [
+                {$group: {
+                    _id: {
+                        submissionAccountId: '$_id.submissionAccountId',
+                        executingEntityIdCodeLei: '$_id.executingEntityIdCodeLei',
+                        nationalCompetentAuthority: '$_id.nationalCompetentAuthority',
+                        payloadTs: '$_id.payloadTs',
+                        assetClass: '$_id.assetClass'
+                    },
+                    counts: {
+                        $push: {
+                            status: '$_id.status',
+                            count: '$count'
+                        }
+                    },
+                    totalCount: {
+                        $sum: '$count'
+                    }
+                }},
+                {$replaceRoot: {
+                    newRoot: {
+                        $mergeObjects: [
                             '$_id',
                             {
-                                "count": '$count'
+                                counts: '$counts',
+                                totalCount: '$totalCount'
                             }
                         ]
                     }
                 }}
+                
             ]
 
             # Get the record from the target collection now
@@ -460,7 +480,7 @@ class MetricsLocust(User):
         try:
             # Reproduce faker fields for our queries
             # Random number of days (1-90 from today) to substract for payloadTs
-            ldTradeDT = random.randint(1, 90)
+            # ldTradeDT = random.randint(1, 90)
             # submissionAccountId
             lAcctNumSM = random.randint(10, 500)
             lAcctNumLarge = random.randint(1, 6)
@@ -478,12 +498,10 @@ class MetricsLocust(User):
             lLeiCodeSm3 = random.randint(1, 5)
             lLeiCode3 = lLeiCodeLg3 if lAcctNum < 6 else lLeiCodeSm3
             # EK: payloadts offset
-            payloadOffset = random.randint(1, 3)
-            payloadTsEnd = datetime.now() - timedelta(days=ldTradeDT + payloadOffset)
-            payloadTsStart = datetime.now() - timedelta(days=ldTradeDT + payloadOffset + 10)
-            laTxnStatus = ["RAC", "RRJ", "AREJ", "REJ"]
-            laTxnSelection = random.choices(laTxnStatus, weights=(7, 1, 1, 1), k=1)
-            lcTxnStatus = laTxnSelection[0]
+            #payloadOffset = random.randint(1, 3)
+            #payloadTsEnd = datetime.now() - timedelta(days=ldTradeDT + payloadOffset)
+            #payloadTsStart = datetime.now() - timedelta(days=ldTradeDT + payloadOffset + 10)
+            payloadTs = f'2022-03-{random.randint(1,10):02} 00:00:00'
 
             # Debug
             # print("lei1:",f'LEY_{lAcctNum}_{lLeiCode1}')
@@ -505,97 +523,80 @@ class MetricsLocust(User):
                         "$gt": payloadTsStart,
                         "$lt": payloadTsEnd
                     },
-                    "status": lcTxnStatus
                 }},
-                {"$group": {
-                    "_id": {
-                        "assetClass": '$assetClass',
-                        "status": '$status',
-                        "subStatus": '$subStatus',
-                        "nationalCompetentAuthority": '$nationalCompetentAuthority'
+                {$unwind: {
+                    path: '$statusCounts'
+                }},
+                {$unwind: {
+                    path: '$statusCounts.subStatusCounts'
+                }},
+                {$group: {
+                    _id: {
+                        submissionAccountId: '$submissionAccountId',
+                        executingEntityIdCodeLei: '$executingEntityIdCodeLei',
+                        nationalCompetentAuthority: '$nationalCompetentAuthority',
+                        payloadTs: '$payloadTs',
+                        assetClass: '$assetClass',
+                        status: '$statusCounts.status',
+                        subStatus: '$statusCounts.subStatusCounts.subStatus'
                     },
-                    "executingEntityIdCodeLei": {
-                        "$addToSet": '$executingEntityIdCodeLei'
-                    },
-                    "count": {
-                        "$count": {}
+                    count: {
+                        $sum: '$statusCounts.subStatusCounts.count'
                     }
                 }},
-                {"$group": {
-                    "_id": {
-                        "assetClass": '$_id.assetClass',
-                        "nationalCompetentAuthority": '$_id.nationalCompetentAuthority',
-                        "status": '$_id.status'
+                {$group: {
+                    _id: {
+                        submissionAccountId: '$_id.submissionAccountId',
+                        executingEntityIdCodeLei: '$_id.executingEntityIdCodeLei',
+                        nationalCompetentAuthority: '$_id.nationalCompetentAuthority',
+                        payloadTs: '$_id.payloadTs',
+                        assetClass: '$_id.assetClass',
+                        status: '$_id.status'
                     },
-                    "executingEntityIdCodeLei": {
-                        "$addToSet": '$_id.executingEntityIdCodeLei'
-                    },
-                    "subStatusCounts": {
-                        "$push": {
-                            "subStatus": '$_id.subStatus',
-                            "count": '$count'
+                    counts: {
+                        $push: {
+                            subStatus: '$_id.subStatus',
+                            count: '$count'
                         }
                     },
-                    "statusCount": {
-                        "$sum": '$count'
+                    totalCount: {
+                        $sum: '$count'
                     }
                 }},
-                {"$addFields": {
-                    "executingEntityIdCodeLei": {
-                        "$reduce": {
-                            "input": '$executingEntityIdCodeLei',
-                            "initialValue": [],
-                            "in": {
-                                "$setUnion": [
-                                    '$$value',
-                                    '$$this'
-                                ]
+                {$group: {
+                    _id: {
+                        submissionAccountId: '$_id.submissionAccountId',
+                        executingEntityIdCodeLei: '$_id.executingEntityIdCodeLei',
+                        nationalCompetentAuthority: '$_id.nationalCompetentAuthority',
+                        payloadTs: '$_id.payloadTs',
+                        assetClass: '$_id.assetClass'
+                    },
+                    statusCounts: {
+                        $push: {
+                            status: '$_id.status',
+                            subStatusCounts: '$counts',
+                            count: '$totalCount'
+                        }
+                    },
+                    totalCount: {
+                        $sum: '$totalCount'
+                    }
+                }},
+                {$replaceRoot: {
+                    newRoot: {
+                        $mergeObjects: [
+                            '$_id',
+                            {
+                                statusCounts: '$statusCounts',
+                                totalCount: '$totalCount'
                             }
-                        }
+                        ]
                     }
-                }},
-                {"$group": {
-                    "_id": {
-                        "assetClass": '$_id.assetClass',
-                        "nationalCompetentAuthority": '$_id.nationalCompetentAuthority'
-                    },
-                    "executingEntityIdCodeLei": {
-                        "$addToSet": '$executingEntityIdCodeLei'
-                    },
-                    "statusCounts": {
-                        "$push": {
-                            "status": '$_id.status',
-                            "statusCount": '$statusCount',
-                            "subStatusCounts": '$subStatusCounts'
-                        }
-                    },
-                    "totalCount": {
-                        "$sum": '$statusCount'
-                    }
-                }},
-                {"$project": {
-                    "_id": 0,
-                    "executingEntityIdCodeLei": {
-                        "$reduce": {
-                            "input": '$executingEntityIdCodeLei',
-                            "initialValue": [],
-                            "in": {
-                               "$setUnion": [
-                                   '$$value',
-                                   '$$this'
-                                ]
-                            }
-                        }
-                    },
-                    "assetClass": '$_id.assetClass',
-                    "nationalCompetentAuthority": '$_id.nationalCompetentAuthority',
-                    "statusCounts": 1,
-                    "totalCount": 1
                 }} 
             ]
 
             # Get the record from the target collection now
-            coll.aggregate(pipeline)
+            aggColl2.aggregate(pipeline)
             #pprint.pprint(list(coll.aggregate(pipeline)))
             events.request_success.fire(request_type="pymongo", name=name, response_time=(time.time()-tic)*1000, response_length=0)
         except Exception as e:
@@ -659,27 +660,29 @@ class MetricsLocust(User):
                     },
                     "payloadTs": datetime.fromisoformat(payloadTs)
                 }},
-                {"$unwind": {
-                    "path": '$counts'
-                }},
-                {"$group": {
-                    "_id": {
-                        "submissionAccountId": '$submissionAccountId',
-                        "executingEntityIdCodeLei": '$executingEntityIdCodeLei',
-                        "nationalCompetentAuthority": '$nationalCompetentAuthority',
-                        "assetClass": '$assetClass',
-                        "payloadTs": '$payloadTs'
+                {$group: {
+                    _id: {
+                        submissionAccountId: '$submissionAccountId',
+                        executingEntityIdCodeLei: '$executingEntityIdCodeLei',
+                        nationalCompetentAuthority: '$nationalCompetentAuthority',
+                        assetClass: '$assetClass',
+                        payloadTs: '$payloadTs'
                     },
-                    "count": {
-                        "$sum": '$counts.count'
+                    status: {
+                        $first: '$status'
+                    },
+                    count: {
+                        $sum: '$count'
                     }
                 }},
-                {"$replaceRoot": {
-                    "newRoot": {
-                        "$mergeObjects": [
+                {$replaceRoot: {
+                    newRoot: {
+                        $mergeObjects: [
                             '$_id',
                             {
-                                "count": '$count'
+                                count: '$count',
+                                nonMiFidFlag: false,
+                                status: '$status'
                             }
                         ]
                     }
@@ -709,7 +712,7 @@ class MetricsLocust(User):
         try:
             # Reproduce faker fields for our queries
             # Random number of days (1-90 from today) to substract for payloadTs
-            ldTradeDT = random.randint(1, 90)
+            # ldTradeDT = random.randint(1, 90)
             # submissionAccountId
             lAcctNumSM = random.randint(10, 500)
             lAcctNumLarge = random.randint(1, 6)
@@ -727,12 +730,10 @@ class MetricsLocust(User):
             lLeiCodeSm3 = random.randint(1, 5)
             lLeiCode3 = lLeiCodeLg3 if lAcctNum < 6 else lLeiCodeSm3
             # EK: payloadts offset
-            payloadOffset = random.randint(1, 3)
-            payloadTsEnd = datetime.now() - timedelta(days=ldTradeDT + payloadOffset)
-            payloadTsStart = datetime.now() - timedelta(days=ldTradeDT + payloadOffset + 10)
-            laTxnStatus = ["RAC", "RRJ", "AREJ", "REJ"]
-            laTxnSelection = random.choices(laTxnStatus, weights=(7, 1, 1, 1), k=1)
-            lcTxnStatus = laTxnSelection[0]
+            #payloadOffset = random.randint(1, 3)
+            #payloadTsEnd = datetime.now() - timedelta(days=ldTradeDT + payloadOffset)
+            #payloadTsStart = datetime.now() - timedelta(days=ldTradeDT + payloadOffset + 10)
+            payloadTs = f'2022-03-{random.randint(1,10):02} 00:00:00'
 
             # Debug
             # print("lei1:",f'LEY_{lAcctNum}_{lLeiCode1}')
@@ -756,56 +757,55 @@ class MetricsLocust(User):
                         "$lt": payloadTsEnd
                     }
                 }},
-                {"$group": {
-                    "_id": {
-                        "assetClass": '$assetClass',
-                        "errorCodes": '$errorCodes',
-                        "nationalCompetentAuthority": '$nationalCompetentAuthority'
+                {$unwind: {
+                    path: '$errorCodes'
+                }},
+                {$group: {
+                    _id: {
+                        submissionAccountId: '$submissionAccountId',
+                        executingEntityIdCodeLei: '$executingEntityIdCodeLei',
+                        nationalCompetentAuthority: '$nationalCompetentAuthority',
+                        assetClass: '$assetClass',
+                        payloadTs: '$payloadTs',
+                        errorCode: '$errorCodes.errorCode'
                     },
-                    "executingEntityIdCodeLei": {
-                        "$addToSet": '$executingEntityIdCodeLei'
-                    },
-                    "count": {
-                        "$count": {}
+                    count: {
+                        $sum: '$errorCodes.count'
                     }
                 }},
-                {"$group": {
-                    "_id": {
-                        "assetClass": '$_id.assetClass',
-                        "nationalCompetentAuthority": '$_id.nationalCompetentAuthority'
+                {$group: {
+                    _id: {
+                        submissionAccountId: '$_id.submissionAccountId',
+                        executingEntityIdCodeLei: '$_id.executingEntityIdCodeLei',
+                        nationalCompetentAuthority: '$_id.nationalCompetentAuthority',
+                        assetClass: '$_id.assetClass',
+                        payloadTs: '$_id.payloadTs'
                     },
-                    "executingEntityIdCodeLei": {
-                        "$addToSet": '$executingEntityIdCodeLei'
-                    },
-                    "errorCodesCounts": {
-                        "$push": {
-                            "errorCodes": '$_id.errorCodes',
-                            "count": '$count'
+                    errorCodeCounts: {
+                        $push: {
+                            errorCode: '$_id.errorCode',
+                            count: '$count'
                         }
+                    },
+                    totalCount: {
+                        $sum: '$count'
                     }
-                }},                
-                {"$project": {
-                    "_id": 0,
-                    "executingEntityIdCodeLei": {
-                        "$reduce": {
-                            "input": '$executingEntityIdCodeLei',
-                            "initialValue": [],
-                            "in": {
-                                "$setUnion": [
-                                    '$$value',
-                                    '$$this'
-                                ]
+                }},
+                {$replaceRoot: {
+                    newRoot: {
+                        $mergeObjects: [
+                            '$_id',
+                            {
+                                errorCodeCounts: '$errorCodeCounts',
+                                totalCount: '$totalCount'
                             }
-                        }
-                    },
-                    "assetClass": '$_id.assetClass',
-                    "nationalCompetentAuthority": '$_id.nationalCompetentAuthority',
-                    "errorCodesCounts": 1
+                        ]
+                    }
                 }}                
             ]
 
             # Get the record from the target collection now
-            coll.aggregate(pipeline)
+            aggColl4.aggregate(pipeline)
             #pprint.pprint(list(coll.aggregate(pipeline)))
             events.request_success.fire(request_type="pymongo", name=name, response_time=(time.time()-tic)*1000, response_length=0)
         except Exception as e:
@@ -829,6 +829,7 @@ class MetricsLocust(User):
             # Random number of days (1-90 from today) to substract for payloadTs
             # ldTradeDT = random.randint(1, 90)
             # submissionAccountId
+ 
             lAcctNumSM = random.randint(10, 500)
             lAcctNumLarge = random.randint(1, 6)
             lAcctList = [lAcctNumLarge, lAcctNumSM]
@@ -868,32 +869,51 @@ class MetricsLocust(User):
                     },
                     "payloadTs": datetime.fromisoformat(payloadTs)
                 }},
-                {"$unwind": {
-                    "path": '$counts'
+                {$unwind: {
+                    path: '$regRespCounts'
                 }},
-                {"$group": {
-                    "_id": {
-                        "submissionAccountId": '$submissionAccountId',
-                        "executingEntityIdCodeLei": '$executingEntityIdCodeLei',
-                        "nationalCompetentAuthority": '$nationalCompetentAuthority',
-                        "regRespRuleId": '$counts.regResp.ruleId',
-                        "assetClass": '$assetClass',
-                        "payloadTs": '$payloadTs'
+                {$group: {
+                    _id: {
+                        submissionAccountId: '$submissionAccountId',
+                        executingEntityIdCodeLei: '$executingEntityIdCodeLei',
+                        nationalCompetentAuthority: '$nationalCompetentAuthority',
+                        payloadTs: '$payloadTs',
+                        assetClass: '$assetClass',
+                        regRespRuleId: '$regRespCounts.regResp.ruleId'
                     },
-                    "regRespRuleDesc": {
-                        "$first": '$counts.regResp.ruleDesc'
-                    },                    
-                    "count": {
-                        "$sum": '$counts.count'
+                    regRespRuleDesc: {
+                        $first: '$regRespCounts.regResp.ruleDesc'
+                    },
+                    count: {
+                        $sum: '$regRespCounts.count'
                     }
                 }},
-                {"$replaceRoot": {
-                    "newRoot": {
-                        "$mergeObjects": [
+                {$group: {
+                    _id: {
+                        submissionAccountId: '$_id.submissionAccountId',
+                        executingEntityIdCodeLei: '$_id.executingEntityIdCodeLei',
+                        nationalCompetentAuthority: '$_id.nationalCompetentAuthority',
+                        payloadTs: '$_id.payloadTs',
+                        assetClass: '$_id.assetClass'
+                    },
+                    regRespRuleCounts: {
+                        $push: {
+                            ruleId: '$_id.regRespRuleId',
+                            ruleDesc: '$regRespRuleDesc',
+                            count: '$count'
+                        }
+                    },
+                    totalCount: {
+                        $sum: '$count'
+                    }
+                }},
+                {$replaceRoot: {
+                    newRoot: {
+                        $mergeObjects: [
                             '$_id',
                             {
-                                "count": '$count',
-                                "regRespRuleDesc": '$regRespRuleDesc'
+                                regRespRuleCounts: '$regRespRuleCounts',
+                                totalCount: '$totalCount'
                             }
                         ]
                     }

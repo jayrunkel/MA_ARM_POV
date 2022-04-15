@@ -80,9 +80,9 @@
  submissionAccountId: 1,
  executingEntityIdCodeLei: {
   $in: [
-		'LEY_1_1',
-		'LEY_1_2',
-		'LEY_1_3'
+   'LEY_1_1',
+   'LEY_1_2',
+   'LEY_1_3'
   ]
  },
  payloadTs: {
@@ -96,54 +96,43 @@
   status: '$status',
   nationalCompetentAuthority: '$nationalCompetentAuthority'
  },
+ submissionAccountId: {
+  $first: '$submissionAccountId'
+ },
  count: {
   $count: {}
  }
 }}, {$group: {
  _id: {
   assetClass: '$_id.assetClass',
-  nationalCompetentAuthority: '$_id.nationalCompetentAuthority'
+  nationalCompetentAuthority: '$_id.nationalCompetentAuthority',
+  executingEntityIdCodeLei: '$_id.executingEntityIdCodeLei'
  },
- executingEntityIdCodeLei: {
-  $addToSet: '$_id.executingEntityIdCodeLei'
+ submissionAccountId: {
+  $first: '$submissionAccountId'
  },
  statusCounts: {
   $push: {
    status: '$_id.status',
    count: '$count'
   }
- }
-}}, {$project: {
- _id: 0,
- executingEntityIdCodeLei: 1,
- assetClass: '$_id.assetClass',
- nationalCompetentAuthority: '$_id.nationalCompetentAuthority',
- statusCounts: 1
-}}]
-
-
-// First two stages only
-[{$match: {
- submissionAccountId: 1,
- executingEntityIdCodeLei: {
-  $in: [
-		'LEY_1_1',
-		'LEY_1_2',
-		'LEY_1_3'
-  ]
  },
- payloadTs: {
-  $gt: ISODate('2022-03-01T00:00:00.000Z'),
-  $lt: ISODate('2022-03-10T00:00:00.000Z')
+ totalCount: {
+  $sum: '$count'
  }
-}}, {$group: {
- _id: {
-  executingEntityIdCodeLei: '$executingEntityIdCodeLei',
-  assetClass: '$assetClass',
-  status: '$status',
-  nationalCompetentAuthority: '$nationalCompetentAuthority'
+}}, {$replaceRoot: {
+ newRoot: {
+  $mergeObjects: [
+   '$_id',
+   {
+    submissionAccountId: '$submissionAccountId',
+    statusCounts: '$statusCounts',
+    totalCount: '$totalCount'
+   }
+  ]
  }
 }}]
+
 
 
 
