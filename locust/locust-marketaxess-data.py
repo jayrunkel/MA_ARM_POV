@@ -313,7 +313,7 @@ class MetricsLocust(User):
     # which will cause the workers to fall behind.
     ################################################################
     # TODO 0 this out if doing normal load
-    @task(0)
+    @task(1)
     def _bulkinsert(self):
         # Note that you don't pass in self despite the signature above
         tic = self.get_time();
@@ -336,7 +336,7 @@ class MetricsLocust(User):
 
 
     # TODO @task(1400) when run normal (0) to bypass inserts
-    @task(0)
+    @task(1400)
     def insert6TxVersions(self):
         # Note that you don't pass in self despite the signature above
         tic = self.get_time();
@@ -369,7 +369,7 @@ class MetricsLocust(User):
         try:
             # Reproduce faker fields for our queries
             # Random number of days (1-90 from today) to substract for payloadTs
-            # ldTradeDT = random.randint(1, 90)
+            ldTradeDT = random.randint(1, 80)
             # submissionAccountId
             lAcctNumSM = random.randint(10, 500)
             lAcctNumLarge = random.randint(1, 6)
@@ -387,10 +387,11 @@ class MetricsLocust(User):
             lLeiCodeSm3 = random.randint(1, 5)
             lLeiCode3 = lLeiCodeLg3 if lAcctNum < 6 else lLeiCodeSm3
             # EK: payloadts offset
-            #payloadOffset = random.randint(1, 3)
-            #payloadTsEnd = datetime.now() - timedelta(days=ldTradeDT + payloadOffset)
-            #payloadTsStart = datetime.now() - timedelta(days=ldTradeDT + payloadOffset + 10)
-            payloadTs = f'2022-03-{random.randint(1,10):02} 00:00:00'
+            payloadOffset = random.randint(1, 10)
+            payloadTsEnd = datetime.now() - timedelta(days=ldTradeDT)
+            payloadTsStart = datetime.now() - timedelta(days=ldTradeDT + payloadOffset)
+            #payloadTs = f'2022-03-{random.randint(1,10):02} 00:00:00'
+            #"payloadTs": datetime.fromisoformat(payloadTs)
 
             # Debug
             # print("lei1:",f'LEY_{lAcctNum}_{lLeiCode1}')
@@ -408,7 +409,10 @@ class MetricsLocust(User):
                             f'LEY_{lAcctNum}_{lLeiCode2}'
                         ]
                     },
-                    "payloadTs": datetime.fromisoformat(payloadTs)
+                    "payloadTs": {
+                        "$gt": payloadTsStart,
+                        "$lt": payloadTsEnd
+                    }
                 }},
                 {"$unwind": {
                     "path": '$statusCounts'
@@ -481,7 +485,7 @@ class MetricsLocust(User):
         try:
             # Reproduce faker fields for our queries
             # Random number of days (1-90 from today) to substract for payloadTs
-            # ldTradeDT = random.randint(1, 90)
+            ldTradeDT = random.randint(1, 80)
             # submissionAccountId
             lAcctNumSM = random.randint(10, 500)
             lAcctNumLarge = random.randint(1, 6)
@@ -499,10 +503,11 @@ class MetricsLocust(User):
             lLeiCodeSm3 = random.randint(1, 5)
             lLeiCode3 = lLeiCodeLg3 if lAcctNum < 6 else lLeiCodeSm3
             # EK: payloadts offset
-            #payloadOffset = random.randint(1, 3)
-            #payloadTsEnd = datetime.now() - timedelta(days=ldTradeDT + payloadOffset)
-            #payloadTsStart = datetime.now() - timedelta(days=ldTradeDT + payloadOffset + 10)
-            payloadTs = f'2022-03-{random.randint(1,10):02} 00:00:00'
+            payloadOffset = random.randint(1, 10)
+            payloadTsEnd = datetime.now() - timedelta(days=ldTradeDT)
+            payloadTsStart = datetime.now() - timedelta(days=ldTradeDT + payloadOffset)
+            #payloadTs = f'2022-03-{random.randint(1,10):02} 00:00:00'
+            #"payloadTs": datetime.fromisoformat(payloadTs),
 
             # Debug
             # print("lei1:",f'LEY_{lAcctNum}_{lLeiCode1}')
@@ -520,7 +525,10 @@ class MetricsLocust(User):
                             f'LEY_{lAcctNum}_{lLeiCode2}'
                         ]
                     },
-                    "payloadTs": datetime.fromisoformat(payloadTs),
+                    "payloadTs": {
+                        "$gt": payloadTsStart,
+                        "$lt": payloadTsEnd
+                    }
                 }},
                 {"$unwind": {
                     "path": '$statusCounts'
@@ -617,7 +625,7 @@ class MetricsLocust(User):
         try:
             # Reproduce faker fields for our queries
             # Random number of days (1-90 from today) to substract for payloadTs
-            # ldTradeDT = random.randint(1, 90)
+            ldTradeDT = random.randint(1, 80)
             # submissionAccountId
             lAcctNumSM = random.randint(10, 500)
             lAcctNumLarge = random.randint(1, 6)
@@ -635,10 +643,11 @@ class MetricsLocust(User):
             lLeiCodeSm3 = random.randint(1, 5)
             lLeiCode3 = lLeiCodeLg3 if lAcctNum < 6 else lLeiCodeSm3
             # EK: payloadts offset
-            #payloadOffset = random.randint(1, 3)
-            #payloadTsEnd = datetime.now() - timedelta(days=ldTradeDT + payloadOffset)
-            #payloadTsStart = datetime.now() - timedelta(days=ldTradeDT + payloadOffset + 10)
-            payloadTs = f'2022-03-{random.randint(1,10):02} 00:00:00'
+            payloadOffset = random.randint(1, 10)
+            payloadTsEnd = datetime.now() - timedelta(days=ldTradeDT)
+            payloadTsStart = datetime.now() - timedelta(days=ldTradeDT + payloadOffset)
+            #payloadTs = f'2022-03-{random.randint(1,10):02} 00:00:00'
+            #"payloadTs": datetime.fromisoformat(payloadTs)
 
             # Debug
             # print("lei1:",f'LEY_{lAcctNum}_{lLeiCode1}')
@@ -656,7 +665,10 @@ class MetricsLocust(User):
                             f'LEY_{lAcctNum}_{lLeiCode2}'
                         ]
                     },
-                    "payloadTs": datetime.fromisoformat(payloadTs)
+                    "payloadTs": {
+                        "$gt": payloadTsStart,
+                        "$lt": payloadTsEnd
+                    }
                 }},
                 {"$group": {
                     "_id": {
@@ -710,7 +722,7 @@ class MetricsLocust(User):
         try:
             # Reproduce faker fields for our queries
             # Random number of days (1-90 from today) to substract for payloadTs
-            # ldTradeDT = random.randint(1, 90)
+            ldTradeDT = random.randint(1, 80)
             # submissionAccountId
             lAcctNumSM = random.randint(10, 500)
             lAcctNumLarge = random.randint(1, 6)
@@ -728,10 +740,11 @@ class MetricsLocust(User):
             lLeiCodeSm3 = random.randint(1, 5)
             lLeiCode3 = lLeiCodeLg3 if lAcctNum < 6 else lLeiCodeSm3
             # EK: payloadts offset
-            #payloadOffset = random.randint(1, 3)
-            #payloadTsEnd = datetime.now() - timedelta(days=ldTradeDT + payloadOffset)
-            #payloadTsStart = datetime.now() - timedelta(days=ldTradeDT + payloadOffset + 10)
-            payloadTs = f'2022-03-{random.randint(1,10):02} 00:00:00'
+            payloadOffset = random.randint(1, 10)
+            payloadTsEnd = datetime.now() - timedelta(days=ldTradeDT)
+            payloadTsStart = datetime.now() - timedelta(days=ldTradeDT + payloadOffset)
+            #payloadTs = f'2022-03-{random.randint(1,10):02} 00:00:00'
+            #"payloadTs": datetime.fromisoformat(payloadTs)
 
             # Debug
             # print("lei1:",f'LEY_{lAcctNum}_{lLeiCode1}')
@@ -750,7 +763,10 @@ class MetricsLocust(User):
                             f'LEY_{lAcctNum}_{lLeiCode2}'
                         ]
                     },
-                    "payloadTs": datetime.fromisoformat(payloadTs)
+                    "payloadTs": {
+                        "$gt": payloadTsStart,
+                        "$lt": payloadTsEnd
+                    }
                 }},
                 {"$unwind": {
                     "path": '$errorCodes'
@@ -822,7 +838,7 @@ class MetricsLocust(User):
         try:
             # Reproduce faker fields for our queries
             # Random number of days (1-90 from today) to substract for payloadTs
-            # ldTradeDT = random.randint(1, 90)
+            ldTradeDT = random.randint(1, 80)
             # submissionAccountId
  
             lAcctNumSM = random.randint(10, 500)
@@ -841,10 +857,11 @@ class MetricsLocust(User):
             lLeiCodeSm3 = random.randint(1, 5)
             lLeiCode3 = lLeiCodeLg3 if lAcctNum < 6 else lLeiCodeSm3
             # EK: payloadts offset
-            #payloadOffset = random.randint(1, 3)
-            #payloadTsEnd = datetime.now() - timedelta(days=ldTradeDT + payloadOffset)
-            #payloadTsStart = datetime.now() - timedelta(days=ldTradeDT + payloadOffset + 10)
-            payloadTs = f'2022-03-{random.randint(1,10):02} 00:00:00'
+            payloadOffset = random.randint(1, 10)
+            payloadTsEnd = datetime.now() - timedelta(days=ldTradeDT)
+            payloadTsStart = datetime.now() - timedelta(days=ldTradeDT + payloadOffset)
+            #payloadTs = f'2022-03-{random.randint(1,10):02} 00:00:00'
+            #"payloadTs": datetime.fromisoformat(payloadTs)
 
             # Debug
             # print("lei1:",f'LEY_{lAcctNum}_{lLeiCode1}')
@@ -862,7 +879,10 @@ class MetricsLocust(User):
                             f'LEY_{lAcctNum}_{lLeiCode2}'
                         ]
                     },
-                    "payloadTs": datetime.fromisoformat(payloadTs)
+                    "payloadTs": {
+                        "$gt": payloadTsStart,
+                        "$lt": payloadTsEnd
+                    }
                 }},
                 {"$unwind": {
                     "path": '$regRespCounts'
@@ -1028,7 +1048,7 @@ class MetricsLocust(User):
             # EK: payloadts offset
             payloadOffset = random.randint(1, 3)
             payloadTsEnd = datetime.now() - timedelta(days=ldTradeDT + payloadOffset)
-            payloadTsStart = datetime.now() - timedelta(days=ldTradeDT + payloadOffset + 1)
+            payloadTsStart = datetime.now() - timedelta(days=ldTradeDT + payloadOffset - 1)
 
             laTxnStatus = ["RAC", "RRJ", "AREJ", "REJ"]
             laTxnSelection = random.choices(laTxnStatus, weights=(7, 1, 1, 1), k=1)
@@ -1072,3 +1092,45 @@ class MetricsLocust(User):
         except Exception as e:
             events.request_failure.fire(request_type="pymongo", name=name, response_time=(time.time()-tic)*1000, response_length=0, exception=e)
             self.audit("exception", e)
+
+    ################################################################
+    # Description: 
+    #    non-index find by submissionAccountId, payloadts and other fields
+    ################################################################
+    @task(1)
+    def findSubmissionNonIndexedField(self):
+        # Note that you don't pass in self despite the signature above
+        tic = self.get_time();
+        name = "findSubmissionNonIndexedField";
+
+        try:
+            # Reproduce faker fields for our queries
+            #Initialize ldTradeDT
+            ldTradeDT = random.randint(1, 90)
+
+            # submissionAccountId
+            lAcctNumSM = random.randint(10, 500)
+            lAcctNumLarge = random.randint(1, 6)
+            lAcctList = [lAcctNumLarge, lAcctNumSM]
+            lAcctNumA = random.choices(lAcctList, weights=(90, 10), k=1)
+            lAcctNum = lAcctNumA[0]
+
+            # EK: payloadts offset
+            payloadOffset = random.randint(1, 3)
+            payloadTsEnd = datetime.now() - timedelta(days=ldTradeDT + payloadOffset)
+            payloadTsStart = datetime.now() - timedelta(days=ldTradeDT + payloadOffset - 1)
+
+            laTxnStatus = ["RAC", "RRJ", "AREJ", "REJ"]
+            laTxnSelection = random.choices(laTxnStatus, weights=(7, 1, 1, 1), k=1)
+            lcTxnStatus = laTxnSelection[0]
+
+            # Get the record from the target collection now
+            coll.find({
+                "submissionAccountId": lAcctNum, 
+                "tradeVenueId": "MFXR"
+                }).limit(2000)
+            events.request_success.fire(request_type="pymongo", name=name, response_time=(time.time()-tic)*1000, response_length=0)
+        except Exception as e:
+            events.request_failure.fire(request_type="pymongo", name=name, response_time=(time.time()-tic)*1000, response_length=0, exception=e)
+            self.audit("exception", e)
+
